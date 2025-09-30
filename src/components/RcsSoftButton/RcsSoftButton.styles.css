@@ -1,0 +1,78 @@
+@reference "tailwindcss/theme.css";
+
+.btn {
+  @apply appearance-none inline-flex items-center gap-2 font-semibold rounded-[10px] select-none border-none cursor-pointer transition-all duration-150 ease-in-out;
+}
+
+.btn:active {
+  @apply translate-y-[1px];
+}
+
+.btn--soft {
+  @apply bg-transparent dark:text-gray-300 rounded-full cursor-pointer transition-transform duration-100;
+
+  /* Custom 3D gölge */ /*, 0.25, 0.15, 0.1*/
+  box-shadow:
+    -2px -2px 4px rgba(255, 255, 255, 1),
+    -4px -4px 5px rgba(255, 255, 255, 0.6),
+    -8px -8px 6px rgba(255, 255, 255, 0.5),
+    2px 2px 4px rgba(0, 0, 0, 0.25),
+    4px 4px 5px rgba(0, 0, 0, 0.15),
+    8px 8px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn--soft:active {
+  @apply translate-x-[1px] translate-y-[1px];
+  box-shadow:
+    -1px -1px 2px rgba(255, 255, 255, 0.5),
+    -2px -2px 4px rgba(255, 255, 255, 0.3),
+    1px 1px 2px rgba(0, 0, 0, 0.2),
+    2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .btn--soft {
+    @apply text-gray-300;
+    box-shadow:
+      -2px -2px 2px rgba(255, 255, 255, 0.25),
+      -4px -4px 3px rgba(255, 255, 255, 0.15),
+      2px 2px 1px rgba(0, 0, 0, 1),
+      4px 4px 5px rgba(0, 0, 0, 0.6),
+      8px 8px 6px rgba(0, 0, 0, 0.5);
+  }
+  .btn--soft:active {
+    @apply translate-x-[1px] translate-y-[1px];
+    box-shadow:
+      -1px -1px 2px rgba(255, 255, 255, 0.2),
+      -2px -2px 4px rgba(255, 255, 255, 0.1),
+      1px 1px 2px rgba(0, 0, 0, 0.5),
+      2px 2px 4px rgba(0, 0, 0, 0.3);
+  }
+}
+.btn--sm {
+  @apply text-sm px-3 py-1.5;
+}
+
+.btn--md {
+  @apply text-base px-4 py-2;
+}
+
+.btn--lg {
+  @apply text-lg px-5 py-3;
+}
+
+.btn--xl {
+  @apply text-xl px-6 py-4;
+}
+
+.btn--disabled {
+  @apply opacity-55 cursor-not-allowed shadow-none transform-none;
+}
+
+.btn__icon {
+  @apply text-[1.1em] inline-flex items-center;
+}
+
+.btn__label {
+  @apply inline-block;
+}

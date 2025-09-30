@@ -18,4 +18,3 @@ import RcsFooter from './components/RcsFooter/RcsFooter.vue'
     <RcsFooter />
   </div>
 </template>
->
