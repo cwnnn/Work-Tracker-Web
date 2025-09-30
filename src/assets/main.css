@@ -1,0 +1,17 @@
+@import './base.css';
+
+@reference "tailwindcss/theme.css";
+
+html,
+body {
+  @apply min-h-screen;
+  margin: 0;
+}
+
+#app {
+  @apply flex flex-col min-h-screen;
+}
+
+main {
+  @apply flex-1;
+}

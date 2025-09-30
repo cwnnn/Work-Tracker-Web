@@ -1,0 +1,37 @@
+@reference "tailwindcss/theme.css";
+
+.header {
+  @apply fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 py-4 backdrop-blur-xs text-black dark:text-white shadow-md;
+}
+
+.logo-link {
+  @apply text-2xl font-semibold tracking-wide relative z-30 no-underline;
+}
+
+.nav-links {
+  @apply flex space-x-6  hidden md:block;
+}
+
+.nav-link {
+  @apply text-black dark:text-white transition-all duration-200 px-4 py-2 rounded-full hover:bg-black dark:hover:bg-white dark:hover:text-black hover:text-white no-underline;
+}
+
+.active {
+  @apply bg-white text-black rounded-full px-4 py-2;
+}
+
+.menu-toggle-button {
+  @apply transition-all text-2xl duration-200 px-4 py-2 rounded-full hover:bg-white hover:text-black md:hidden;
+}
+
+.nav-links-button {
+  @apply flex-col space-y-2;
+}
+
+ul {
+  @apply absolute mt-55 right-0 shadow-md rounded-md w-40 z-50 text-right;
+}
+
+li {
+  @apply block px-4 py-2;
+}
