@@ -1,39 +1,49 @@
 <template>
   <button
-    :class="['btn', `btn--soft`, `btn--${size}`, { 'btn--disabled': disabled }]"
+    :id="props.id"
+    :class="[
+      'btn btn--soft',
+      `btn--${props.size}`,
+      { 'btn--disabled': props.disabled, 'btn--pressed': pressed },
+      props.class,
+    ]"
+    :style="props.style"
     :aria-pressed="pressed"
-    :disabled="disabled"
+    :disabled="props.disabled"
     @click="handleClick"
   >
-    <span v-if="icon" class="btn__icon" aria-hidden="true">{{ icon }}</span>
-    <span class="btn__label">{{ label }}</span>
+    <span v-if="props.icon" class="btn__icon" aria-hidden="true">{{ props.icon }}</span>
+    <span class="btn__label">{{ props.label }}</span>
   </button>
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits, ref } from 'vue'
+import { defineProps, defineEmits, ref, withDefaults } from 'vue'
 import type { ButtonProps } from './RcsSoftButton.interface'
 import './RcsSoftButton.styles.css'
 
-// Props ile default değerleri burada veriyoruz
-const props = defineProps<ButtonProps>()
-
-const label = props.label ?? 'Button'
-const size = props.size ?? 'md'
-const disabled = props.disabled ?? false
-const icon = props.icon ?? ''
+const props = withDefaults(defineProps<ButtonProps>(), {
+  label: 'Button',
+  size: 'md',
+  disabled: false,
+  icon: '',
+  pressed: false,
+  id: '',
+  class: '',
+  style: '',
+})
 
 const emits = defineEmits<{
   (e: 'click', ev: MouseEvent): void
   (e: 'press', pressed: boolean): void
 }>()
 
-const pressed = ref(false)
+const pressed = ref(props.pressed)
 
 function handleClick(ev: MouseEvent) {
-  if (disabled) return
-  emits('click', ev)
+  if (props.disabled) return
   pressed.value = !pressed.value
+  emits('click', ev)
   emits('press', pressed.value)
 }
 </script>
