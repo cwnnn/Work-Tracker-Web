@@ -29,7 +29,7 @@
 }
 
 ul {
-  @apply absolute mt-55 right-0 shadow-md rounded-md w-40 z-50 text-right;
+  @apply absolute mt-55 right-0 rounded-md w-40 z-50 text-right;
 }
 
 li {

@@ -4,7 +4,7 @@
     :class="[
       'btn btn--soft',
       `btn--${props.size}`,
-      { 'btn--disabled': props.disabled, 'btn--pressed': pressed },
+      { 'btn--disabled': props.disabled, 'btn--pressed': props.pressed },
       props.class,
     ]"
     :style="props.style"
@@ -18,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits, ref, withDefaults } from 'vue'
+import { defineProps, defineEmits, ref, withDefaults, watch } from 'vue'
 import type { ButtonProps } from './RcsSoftButton.interface'
 import './RcsSoftButton.styles.css'
 
@@ -39,6 +39,13 @@ const emits = defineEmits<{
 }>()
 
 const pressed = ref(props.pressed)
+
+watch(
+  () => props.pressed,
+  (val) => {
+    pressed.value = val
+  },
+)
 
 function handleClick(ev: MouseEvent) {
   if (props.disabled) return
