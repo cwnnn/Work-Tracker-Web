@@ -27,7 +27,6 @@ const selectedTopic = ref<{ id: string; label: string } | null>(null)
 
 function handleCreate(label: string) {
   console.log('Yeni topic oluştur:', label)
-  // burada Firebase’e yeni topic ekleme fonksiyonunu çağırabilirsin
 }
 
 const stopwatchRef = ref<InstanceType<typeof RcsStopwatch> | null>(null)
