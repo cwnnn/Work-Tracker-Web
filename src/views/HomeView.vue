@@ -1,22 +1,33 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import SearchableDropdown from '../components/RcsSoftSearchableDropdown/RcsSearchableDropdown.vue'
-import type { DropdownItem } from '../components/RcsSoftSearchableDropdown/SearchableDropdown.interface'
+//vue
+import { computed, onMounted, ref } from 'vue'
+//componenet
 import RcsStopwatch from '../components/RcsStopwatch/RcsStopwatch.vue'
 import RcsSoftButton from '@/components/RcsSoftButton/RcsSoftButton.vue'
+import RcsSearchableDropdown from '../components/RcsSoftSearchableDropdown/RcsSearchableDropdown.vue'
+//Stores
+import { useUserStore } from '@/stores/userStore'
+import { useTopicStore } from '@/stores/topicStore'
+//Utils
+import { getUserTopics } from '@/utils/firebaseUtils'
 
-const topics = ref<DropdownItem[]>([
-  { id: '1', label: 'Matematik' },
-  { id: '2', label: 'Fizik' },
-  { id: '3', label: 'Kimya' },
-])
+const userStore = useUserStore()
 
-const selected = ref<DropdownItem | null>(null)
+const topicStore = useTopicStore()
 
-function handleCreate(newLabel: string) {
-  const newItem = { id: Date.now().toString(), label: newLabel }
-  topics.value.push(newItem)
-  selected.value = newItem
+// DropdownItem tipine uygun hale getiriyoruz
+const dropdownItems = computed(() =>
+  topicStore.topics.map((t) => ({
+    id: t.id,
+    label: t.topic,
+  })),
+)
+
+const selectedTopic = ref<{ id: string; label: string } | null>(null)
+
+function handleCreate(label: string) {
+  console.log('Yeni topic oluştur:', label)
+  // burada Firebase’e yeni topic ekleme fonksiyonunu çağırabilirsin
 }
 
 const stopwatchRef = ref<InstanceType<typeof RcsStopwatch> | null>(null)
@@ -24,11 +35,6 @@ const stopwatchRef = ref<InstanceType<typeof RcsStopwatch> | null>(null)
 const startTimer = () => stopwatchRef.value?.start()
 const stopTimer = () => stopwatchRef.value?.stop()
 const resetTimer = () => stopwatchRef.value?.reset()
-
-/*const getTime = () => {
-  const t = stopwatchRef.value?.time
-  console.log('Current time:', t)
-}*/
 
 const startStopLabel = ref('Start')
 const buttonPressed = ref(false)
@@ -49,18 +55,26 @@ function handlePress(pressed: boolean) {
     buttonPressed.value = false
   }
 }
+onMounted(async () => {
+  const topics = await getUserTopics(userStore.userId!)
+  topicStore.setTopics(topics)
+  console.log('Topic listesi yüklendi:', topics)
+})
 </script>
 
 <template>
   <main class="min-h-screen p-2 mt-20 flex flex-col md:flex-row md:gap-6">
-    <!-- Dropdown: küçük ekranda üste ortalı, büyük ekranda sağa -->
     <div
       class="w-full md:w-auto order-first md:order-last flex justify-center md:justify-end md:mr-10"
     >
-      <SearchableDropdown v-model="selected" :items="topics" @create="handleCreate" />
+      <RcsSearchableDropdown
+        v-model="selectedTopic"
+        :items="dropdownItems"
+        placeholder="Select topic..."
+        @create="handleCreate"
+      />
     </div>
 
-    <!-- Stopwatch container: her zaman ortada -->
     <div class="flex-1 flex justify-center">
       <div class="text-center xl:ml-[30vh] md:mt-20">
         <RcsStopwatch ref="stopwatchRef" :initialTime="0" />
@@ -74,7 +88,6 @@ function handlePress(pressed: boolean) {
             class="w-30 md:w-50"
           />
           <RcsSoftButton label="Reset" @click="resetTimerfunc" size="xl" class="w-30 md:w-50" />
-          <!--<RcsSoftButton label="Get Time" @click="getTime" size="md" /> -->
         </div>
       </div>
     </div>

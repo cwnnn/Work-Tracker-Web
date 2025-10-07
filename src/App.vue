@@ -1,8 +1,30 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { RouterView } from 'vue-router'
-
 import RcsHeader from './components/RcsHeader/RcsHeader.vue'
 import RcsFooter from './components/RcsFooter/RcsFooter.vue'
+import { auth, signInAnonymously } from './firebase'
+import { useUserStore } from './stores/userStore'
+import { useTopicStore } from '@/stores/topicStore'
+import { getUserTopics } from '@/utils/firebaseUtils'
+
+const userStore = useUserStore()
+const topicStore = useTopicStore()
+
+onMounted(async () => {
+  try {
+    const result = await signInAnonymously(auth)
+    userStore.setUser(result.user.uid)
+
+    console.log('Anonim kullanıcı giriş yaptı:', result.user.uid)
+    console.log('Global store userId:', result.user.uid)
+    const topics = await getUserTopics(result.user.uid)
+    topicStore.setTopics(topics)
+    console.log('Topic listesi yüklendi:', topics)
+  } catch (err) {
+    console.error('App başlatılırken hata:', err)
+  }
+})
 </script>
 
 <template>
