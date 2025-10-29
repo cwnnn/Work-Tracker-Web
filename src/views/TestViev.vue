@@ -26,7 +26,7 @@ function mulberry32(a: number) {
 }
 
 function utf8ToUint8(input: string): Uint8Array {
-  return new TextEncoder().encode(input!) // ! ile TypeScript'e garanti veriyoruz
+  return new TextEncoder().encode(input!)
 }
 
 function uint8ToUtf8(bytes: Uint8Array): string {

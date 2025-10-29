@@ -20,14 +20,13 @@ export async function saveSession(
   seed: string,
 ) {
   try {
-    // Veriyi çöz
     let duration = 0
     try {
       const unmasked = unmask(maskedDuration, seed)
       duration = Number(unmasked) || 0
     } catch (err) {
       console.error('[saveSession] Süre çözümlenemedi, gönderilmiyor:', err)
-      return // Hata varsa gönderme
+      return
     }
 
     // Firestore'a kayıt
@@ -55,7 +54,7 @@ export interface UserTopic {
 export const getUserTopics = async (userId: string): Promise<UserTopic[]> => {
   try {
     const sessionsRef = collection(db, 'users', userId, 'sessions')
-    const q = query(sessionsRef, orderBy('topic', 'asc')) // alfabetik artan sıralama
+    const q = query(sessionsRef, orderBy('topic', 'asc'))
     const snapshot = await getDocs(q)
 
     const allTopics = snapshot.docs.map((doc) => {
