@@ -9,7 +9,11 @@
     <!-- Açık halde -->
     <div class="dropdown-panel" v-if="isOpen">
       <div class="dropdown-search">
-        <input v-model="query" placeholder="Search..." class="dropdown-input" />
+        <input
+          v-model="query"
+          :placeholder="filteredItems.length ? 'Search...' : 'Create new...'"
+          class="dropdown-input"
+        />
       </div>
       <ul class="dropdown-list">
         <li
@@ -22,7 +26,10 @@
           {{ item.label }}
         </li>
 
-        <li v-if="query" @click="createNew" class="dropdown-create">+ Create "{{ query }}"</li>
+        <!-- Dışarıdan yönetilecek "create" eventi -->
+        <li v-if="query && !filteredItems.length" @click="emitCreate" class="dropdown-create">
+          + Create "{{ query }}"
+        </li>
       </ul>
     </div>
   </div>
@@ -56,7 +63,8 @@ function selectItem(item: DropdownItem) {
   query.value = ''
 }
 
-function createNew() {
+// 🔹 Artık sadece dışarıya haber verir, kaydetme işlemi yok
+function emitCreate() {
   emit('create', query.value)
   isOpen.value = false
   query.value = ''
