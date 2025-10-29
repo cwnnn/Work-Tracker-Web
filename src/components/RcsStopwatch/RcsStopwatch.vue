@@ -1,6 +1,6 @@
 <template>
   <div :id="props.id" :class="['stopwatch-container', props.class]" :style="props.style">
-    <div class="stopwatch-time">{{ formatTime(time) }}</div>
+    <div class="stopwatch-time">{{ formatTime(displayTime) }}</div>
   </div>
 </template>
 
@@ -23,42 +23,71 @@ const props = withDefaults(
   },
 )
 
-const time = ref((props.initialTime || 0) * 1000)
+//Temel zaman değişkenleri
+const initialMs = props.initialTime || 0
+const displayTime = ref(initialMs)
 const running = ref(false)
-let timer: number | undefined
+let rafId: number | null = null
+let startTimestamp = 0
+let accumulated = initialMs
 
+// Başlat
 const start = () => {
-  if (!running.value) {
-    running.value = true
-    timer = setInterval(() => {
-      time.value += 10
-    }, 10)
+  if (running.value) return
+  running.value = true
+  startTimestamp = Date.now()
+
+  const tick = () => {
+    updateTime()
+    if (running.value) {
+      rafId = requestAnimationFrame(tick)
+    }
+  }
+
+  rafId = requestAnimationFrame(tick)
+}
+
+// Durdur
+const stop = () => {
+  if (!running.value) return
+  running.value = false
+  accumulated += Date.now() - startTimestamp
+  if (rafId) cancelAnimationFrame(rafId)
+  rafId = null
+}
+
+// Reset
+const reset = () => {
+  stop()
+  accumulated = 0
+  displayTime.value = 0
+}
+
+// Gerçek zaman hesaplama
+const updateTime = () => {
+  if (running.value) {
+    displayTime.value = accumulated + (Date.now() - startTimestamp)
+  } else {
+    displayTime.value = accumulated
   }
 }
 
-const stop = () => {
-  running.value = false
-  if (timer) clearInterval(timer)
-}
-
-const reset = () => {
-  stop()
-  time.value = 0
-}
-
+// Temizlik
 onUnmounted(() => {
-  if (timer) clearInterval(timer)
+  if (rafId) cancelAnimationFrame(rafId)
 })
 
+// Dışarıya expose et
 defineExpose<StopwatchExpose>({
   start,
   stop,
   reset,
   get time() {
-    return Math.floor(time.value)
+    return Math.floor(displayTime.value)
   },
 })
 
+// Zaman formatlama
 const formatTime = (ms: number) => {
   const totalSeconds = Math.floor(ms / 1000)
   const hours = Math.floor(totalSeconds / 3600)

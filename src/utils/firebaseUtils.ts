@@ -69,9 +69,6 @@ export const getUserTopics = async (userId: string): Promise<UserTopic[]> => {
     const uniqueTopics = allTopics.filter(
       (topic, index, self) => index === self.findIndex((t) => t.id === topic.id),
     )
-    const sortedTopics = uniqueTopics.sort((a, b) =>
-      a.topic.toLowerCase().localeCompare(b.topic.toLowerCase(), 'tr'),
-    )
 
     console.log('Benzersiz Topic Listesi (ASC):', uniqueTopics)
     return uniqueTopics
