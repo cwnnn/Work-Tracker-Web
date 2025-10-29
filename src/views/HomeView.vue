@@ -10,7 +10,7 @@ import { useUserStore } from '@/stores/userStore'
 import { useTopicStore } from '@/stores/topicStore'
 import { useSeedStore } from '@/stores/seedStore'
 //utils
-import { saveSession, getUserTopics } from '@/utils/firebaseUtils'
+import { saveSession, getUserTopics, saveGlobalErrorLog } from '@/utils/firebaseUtils'
 import { mask, unmask } from '@/utils/maskUtils'
 
 // store'ları başlat
@@ -30,9 +30,9 @@ const selectedTopic = ref<{ id: string; label: string } | null>(null)
 
 function toTitleCase(text: string): string {
   return text
-    .toLocaleLowerCase('tr') // tümünü önce küçült
-    .split(' ') // kelimelere ayır
-    .filter(Boolean) // boşlukları temizle
+    .toLocaleLowerCase('tr')
+    .split(' ')
+    .filter(Boolean)
     .map((word) => word.charAt(0).toLocaleUpperCase('tr') + word.slice(1))
     .join(' ')
 }
@@ -51,16 +51,19 @@ async function TopicCreate(label: string) {
     }
     await saveSession(null, userStore.userId, toTitleCase(label), mask('0', seed), seed)
 
-    // topicStore'a ekle (sadece görünürlük için)
     const newTopic = { id: crypto.randomUUID(), topic: toTitleCase(label) }
     topicStore.addTopic(newTopic)
-
-    // Dropdown seçimini güncelle
     selectedTopic.value = { id: newTopic.id, label: newTopic.topic }
 
     console.log('Yeni session oluşturuldu ve topic eklendi:', label)
-  } catch (err) {
-    console.error('Yeni topic/session oluşturulamadı:', err)
+  } catch (err: unknown) {
+    const e = err instanceof Error ? err : new Error(String(err))
+    console.error('Yeni topic/session oluşturulamadı:', e)
+    await saveGlobalErrorLog(e.message, 'TopicCreate', userStore.userId ?? undefined, e.stack, {
+      label,
+      seed: seedStore.seed,
+      selectedTopic: selectedTopic.value,
+    })
   }
 }
 
@@ -73,26 +76,19 @@ const startTimer = () => stopwatchRef.value?.start()
 const stopTimer = () => stopwatchRef.value?.stop()
 const resetTimer = () => stopwatchRef.value?.reset()
 
-//reset tuşu fonksiyonu
 function resetTimerfunc() {
   resetTimer()
   handlePress(false)
   previousTime.value = 0
 }
-/* buradan sonrası kayıt etme algoritması-------------------------------------------------------------------------
-kısaca her durdurulduğunda ya da resetlendiğnde önceki durdurulma anı ile şimdiki an arasındaki farkı alıp
- verinin kaybolmaması için her 5 dakikada bir localstorage a kaydet
 
-*/
+/* kayıt algoritması açıklaması */
+const LOCAL_KEY = ref<string>('noTopic')
 
-const LOCAL_KEY = ref<string>('noTopic') //localstorage key
-
-// storge kayıt
 function saveAccumulatedTime(time?: number) {
   if (!selectedTopic.value) return
 
   const seed = seedStore.seed
-
   if (!seed) {
     console.warn('[saveAccumulatedTime] Seed henüz yüklenmedi, kayıt atlandı.')
     return
@@ -103,9 +99,7 @@ function saveAccumulatedTime(time?: number) {
   localStorage.setItem(LOCAL_KEY.value, masked)
   console.log(localStorage.getItem(LOCAL_KEY.value))
 }
-const previousTime = ref<number>(0) // önceki kayıtlı zaman
-
-// Geçen süreyi hesapla ve kaydet
+const previousTime = ref<number>(0)
 
 function computedAccumulatedTime() {
   if (!stopwatchRef.value || stopwatchRef.value.time <= 0) return
@@ -114,14 +108,9 @@ function computedAccumulatedTime() {
   previousTime.value = stopwatchRef.value.time
 
   const seed = seedStore.seed
-  if (!seed) {
-    console.warn('[computedAccumulatedTime] Seed henüz yüklenmedi, kayıt atlandı.')
-    return
-  }
+  if (!seed) return console.warn('[computedAccumulatedTime] Seed henüz yüklenmedi, kayıt atlandı.')
 
   const stored = localStorage.getItem(LOCAL_KEY.value)
-
-  // Eğer hiç kayıt yoksa, doğrudan yeni kaydet
   if (!stored) {
     saveAccumulatedTime(delta)
     console.log('İlk kayıt. Toplam süre (ms):', delta)
@@ -129,18 +118,26 @@ function computedAccumulatedTime() {
   }
 
   let total = 0
-
   try {
     const unmasked = unmask(stored, seed)
     total = Number(unmasked) || 0
-  } catch (err) {
-    // Hata varsa localStorage'ı sil
-    console.error(
-      '[computedAccumulatedTime] Kayıt çözümlenemedi, localStorage temizleniyor...',
-      err,
-    )
+  } catch (err: unknown) {
+    const e = err instanceof Error ? err : new Error(String(err))
+    console.error('[computedAccumulatedTime] Kayıt çözümlenemedi:', e)
     localStorage.removeItem(LOCAL_KEY.value)
     total = 0
+    saveGlobalErrorLog(
+      e.message,
+      'computedAccumulatedTime',
+      userStore.userId ?? undefined,
+      e.stack,
+      {
+        stored,
+        localKey: LOCAL_KEY.value,
+        seed,
+        selectedTopic: selectedTopic.value,
+      },
+    ).catch(console.error)
   }
 
   const newTotal = total + delta
@@ -150,27 +147,44 @@ function computedAccumulatedTime() {
 
 let intervalId: number | null = null
 
-// 5 dakikalık otomatik kayıt
 function startAutoSave() {
-  // Her seferinde sıfırdan başlar
   stopAutoSave()
   previousTime.value = stopwatchRef.value?.time || 0
 
-  intervalId = setInterval(() => {
-    computedAccumulatedTime()
-  }, 1 * 1000) // 1 dakika
+  intervalId = window.setInterval(async () => {
+    try {
+      computedAccumulatedTime()
+    } catch (err: unknown) {
+      const e = err instanceof Error ? err : new Error(String(err))
+      console.error('[startAutoSave] Otomatik kayıt hatası:', e)
+      await saveGlobalErrorLog(e.message, 'startAutoSave', userStore.userId ?? undefined, e.stack, {
+        selectedTopic: selectedTopic.value,
+        seed: seedStore.seed,
+        localKey: LOCAL_KEY.value,
+      })
+    }
+  }, 1 * 1000)
 }
 
-// Timer’ı durdur
-function stopAutoSave() {
-  computedAccumulatedTime()
+async function stopAutoSave() {
+  try {
+    computedAccumulatedTime()
+  } catch (err: unknown) {
+    const e = err instanceof Error ? err : new Error(String(err))
+    console.error('[stopAutoSave] Durdurma sırasında hata:', e)
+    await saveGlobalErrorLog(e.message, 'stopAutoSave', userStore.userId ?? undefined, e.stack, {
+      selectedTopic: selectedTopic.value,
+      seed: seedStore.seed,
+      localKey: LOCAL_KEY.value,
+    })
+  }
+
   if (intervalId) {
     clearInterval(intervalId)
     intervalId = null
   }
 }
 
-//stopwatch için True/false kontrolü
 function toggleTracking(value: boolean) {
   if (value) {
     console.log('Takip başladı...')
@@ -183,19 +197,16 @@ function toggleTracking(value: boolean) {
   }
 }
 
-// sayfa kapanırsa durdur ve kaydet
 onUnmounted(() => {
   stopAutoSave()
 })
 
-// Başlat/Durdur butonuna basıldığında
-function handlePress(pressed: boolean) {
+async function handlePress(pressed: boolean) {
   toggleTracking(pressed)
   if (pressed) {
     startTimer()
     startStopLabel.value = 'Stop'
     buttonPressed.value = true
-    console.log(selectedTopic.value?.label)
   } else {
     stopTimer()
     startStopLabel.value = 'Start'
@@ -212,40 +223,76 @@ function handlePress(pressed: boolean) {
       try {
         const unmasked = unmask(masked, seed)
         time = Number(unmasked) || 0
-      } catch (err) {
-        console.error('[saveSession] Süre çözümlenemedi:', err)
+      } catch (err: unknown) {
+        const e = err instanceof Error ? err : new Error(String(err))
+        console.error('[saveSession] Süre çözümlenemedi:', e)
+        await saveGlobalErrorLog(
+          e.message,
+          'handlePress (Stop)',
+          userStore.userId ?? undefined,
+          e.stack,
+          {
+            masked,
+            seed,
+            selectedTopic: selectedTopic.value,
+            localKey: LOCAL_KEY.value,
+          },
+        )
         return
       }
 
       if (time > 60 * 1000) {
-        saveSession(
-          selectedTopic.value.id,
-          userStore.userId,
-          selectedTopic.value?.label,
-          masked,
-          seed,
-        )
-        saveAccumulatedTime(0)
+        try {
+          await saveSession(
+            selectedTopic.value.id,
+            userStore.userId,
+            selectedTopic.value?.label,
+            masked,
+            seed,
+          )
+          saveAccumulatedTime(0)
+        } catch (err: unknown) {
+          const e = err instanceof Error ? err : new Error(String(err))
+          console.error('[handlePress] saveSession hatası:', e)
+          await saveGlobalErrorLog(
+            e.message,
+            'handlePress (saveSession)',
+            userStore.userId ?? undefined,
+            e.stack,
+            {
+              time,
+              masked,
+              seed,
+              topic: selectedTopic.value,
+            },
+          )
+        }
       }
     }
   }
 }
 
-// Topic değiştiğinde localStorage key'i güncelle ve timer'ı sıfırla
 watch(selectedTopic, (newVal, oldVal) => {
-  if (!newVal) return // hiç seçilmemişse
+  if (!newVal) return
   if (!oldVal || newVal.id !== oldVal.id) {
     LOCAL_KEY.value = `topic_${newVal.label}`
     resetTimerfunc()
   }
 })
 
-// İlk açılışta topic listesi yükle
 onMounted(async () => {
-  const topics = await getUserTopics(userStore.userId!)
-  topicStore.setTopics(topics)
-  console.log('Topic listesi yüklendi:', topics)
-  console.log('lokaldeki veri', localStorage.getItem(LOCAL_KEY.value))
+  try {
+    const topics = await getUserTopics(userStore.userId!)
+    topicStore.setTopics(topics)
+    console.log('Topic listesi yüklendi:', topics)
+    console.log('lokaldeki veri', localStorage.getItem(LOCAL_KEY.value))
+  } catch (err: unknown) {
+    const e = err instanceof Error ? err : new Error(String(err))
+    console.error('[onMounted] Topic listesi yüklenemedi:', e)
+    await saveGlobalErrorLog(e.message, 'onMounted', userStore.userId ?? undefined, e.stack, {
+      userId: userStore.userId,
+    })
+  }
 })
 </script>
 
