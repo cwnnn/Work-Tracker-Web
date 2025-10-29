@@ -6,16 +6,20 @@ import RcsFooter from './components/RcsFooter/RcsFooter.vue'
 import { auth, signInAnonymously } from './firebase'
 import { useUserStore } from './stores/userStore'
 import { useTopicStore } from '@/stores/topicStore'
+import { useSeedStore } from '@/stores/seedStore'
 import { getUserTopics } from '@/utils/firebaseUtils'
 
 const userStore = useUserStore()
 const topicStore = useTopicStore()
+const seedStore = useSeedStore()
 
 onMounted(async () => {
   try {
     const result = await signInAnonymously(auth)
     userStore.setUser(result.user.uid)
 
+    await seedStore.loadSeed()
+    console.log('Seed:', seedStore.seed)
     console.log('Anonim kullanıcı giriş yaptı:', result.user.uid)
     console.log('Global store userId:', result.user.uid)
     const topics = await getUserTopics(result.user.uid)
