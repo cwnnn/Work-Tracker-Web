@@ -1,96 +1,186 @@
 <template>
-  <div class="test-view">
-    <h1>Test View</h1>
-    <p>This is a test view for routing purposes.</p>
+  <div class="p-6 bg-gray-50 min-h-screen grid grid-cols-2 gap-6">
+    <!-- Sol Üst: Line Chart + Zaman Filtresi -->
+    <div class="flex flex-col gap-3">
+      <div class="flex justify-between items-center">
+        <h2 class="text-xl font-semibold">Çalışma Süresi</h2>
+        <select v-model="timeRange" class="border rounded-lg p-1 bg-white">
+          <option value="hourly">Saatlik</option>
+          <option value="daily">Günlük</option>
+          <option value="weekly">Haftalık</option>
+          <option value="monthly">Aylık</option>
+        </select>
+      </div>
+      <canvas ref="lineCanvas" class="bg-white p-4 rounded-xl shadow"></canvas>
+    </div>
+
+    <!-- Sağ Üst: Ders Seçimi + Pie Chart -->
+    <div class="flex flex-col gap-4">
+      <div class="flex justify-between items-center">
+        <RcsSoftSearchableDropdown
+          :options="topics"
+          v-model="selectedTopic"
+          placeholder="Ders seçin"
+        />
+      </div>
+      <canvas ref="pieCanvas" class="bg-white p-4 rounded-xl shadow"></canvas>
+    </div>
+
+    <!-- Alt Kartlar -->
+    <div class="col-span-2 grid grid-cols-4 gap-4 mt-6">
+      <div
+        v-for="card in statCards"
+        :key="card.title"
+        class="bg-white p-4 rounded-xl shadow text-center"
+      >
+        <h3 class="text-sm text-gray-500">{{ card.title }}</h3>
+        <p class="text-2xl font-semibold mt-1">{{ card.value }}</p>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-function seedToNumber(seed: string): number {
-  let h = 2166136261 >>> 0
-  for (let i = 0; i < seed.length; i++) {
-    h ^= seed.charCodeAt(i)
-    h = Math.imul(h, 16777619) >>> 0
+import { ref, onMounted, watch } from 'vue'
+import RcsSoftSearchableDropdown from '@/components/RcsSoftSearchableDropdown/RcsSearchableDropdown.vue'
+import {
+  Chart,
+  LineController,
+  LineElement,
+  PointElement,
+  LinearScale,
+  CategoryScale,
+  PieController,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js'
+
+// Chart.js setup
+Chart.register(
+  LineController,
+  LineElement,
+  PointElement,
+  LinearScale,
+  CategoryScale,
+  PieController,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+)
+
+// refs
+const lineCanvas = ref<HTMLCanvasElement | null>(null)
+const pieCanvas = ref<HTMLCanvasElement | null>(null)
+let lineChart: Chart | undefined
+let pieChart: Chart | undefined
+
+// state
+const timeRange = ref<'hourly' | 'daily' | 'weekly' | 'monthly'>('daily')
+const selectedTopic = ref('Matematik')
+const topics = ['Matematik', 'Fizik', 'İngilizce', 'Kimya']
+
+// sahte veri
+const labels = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cts', 'Paz']
+const durations = ref([3, 4, 2, 5, 6, 1, 0]) // saat
+const pieLabels = ['Matematik', 'Fizik', 'İngilizce', 'Kimya']
+const pieData = ref([12, 8, 6, 4])
+
+// kartlar
+const totalHours = ref(30)
+const avgDaily = ref(4.2)
+const mostActiveDay = ref('Perşembe — 6.1 saat')
+const experienceLevel = ref(getExperienceLevel(totalHours.value))
+
+const statCards = [
+  { title: 'Toplam Süre', value: `${totalHours.value} saat` },
+  { title: 'Deneyim', value: experienceLevel.value },
+  { title: 'Günlük Ortalama', value: `${avgDaily.value} saat` },
+  { title: 'En Aktif Gün', value: mostActiveDay.value },
+]
+
+// deneyim seviyesi hesaplama
+function getExperienceLevel(hours: number) {
+  if (hours < 1000) return 'Acemi'
+  if (hours < 3000) return 'Gelişen'
+  if (hours < 7000) return 'Usta'
+  return 'Master'
+}
+
+// chart çizimleri
+onMounted(() => {
+  if (!lineCanvas.value || !pieCanvas.value) return
+
+  // line chart
+  lineChart = new Chart(lineCanvas.value, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Günlük Süre (saat)',
+          data: durations.value,
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59,130,246,0.2)',
+          tension: 0.3,
+          fill: true,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: { display: true, text: 'Seçilen Derste Çalışma Süresi' },
+        legend: { display: false },
+      },
+      scales: { y: { beginAtZero: true } },
+    },
+  })
+
+  // pie chart
+  pieChart = new Chart(pieCanvas.value, {
+    type: 'pie',
+    data: {
+      labels: pieLabels,
+      datasets: [
+        {
+          data: pieData.value,
+          backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'],
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: { display: true, text: 'Tüm Derslerin Dağılımı' },
+        legend: { position: 'bottom' },
+      },
+    },
+  })
+})
+
+// grafik güncelleme
+watch(selectedTopic, (_topic) => {
+  // sahte değişim efekti
+  durations.value = Array.from({ length: 7 }, () => Math.floor(Math.random() * 6))
+  if (lineChart?.data.datasets[0]) {
+    lineChart.data.datasets[0].data = durations.value
+    lineChart.update()
   }
-  return h >>> 0
-}
+})
 
-function mulberry32(a: number) {
-  return function () {
-    a |= 0
-    a = (a + 0x6d2b79f5) | 0
-    let t = Math.imul(a ^ (a >>> 15), 1 | a)
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+watch(pieData, (newData) => {
+  if (pieChart?.data.datasets[0]) {
+    pieChart.data.datasets[0].data = newData
+    pieChart.update()
   }
-}
-
-function utf8ToUint8(input: string): Uint8Array {
-  return new TextEncoder().encode(input!)
-}
-
-function uint8ToUtf8(bytes: Uint8Array): string {
-  return new TextDecoder().decode(bytes!)
-}
-
-function uint8ToBase64(bytes: Uint8Array): string {
-  let binary = ''
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i] ?? 0)
-  }
-  return btoa(binary)
-}
-
-function base64ToUint8(b64: string): Uint8Array {
-  const binary = atob(b64)
-  const bytes = new Uint8Array(binary.length)
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i)
-  }
-  return bytes
-}
-
-function mask(value: string, seed: string): string {
-  const seedNum = seedToNumber(seed)
-  const rng = mulberry32(seedNum)
-
-  const plain = utf8ToUint8(value)
-  const out = new Uint8Array(plain.length)
-
-  for (let i = 0; i < plain.length; i++) {
-    const k: number = Math.floor(rng() * 256)
-    out[i] = (plain[i] ?? 0) ^ k
-  }
-
-  const b64 = uint8ToBase64(out)
-  console.log('[mask] seed:', seed, 'value:', value, '=> masked(base64):', b64)
-  return b64
-}
-
-function unmask(maskedBase64: string, seed: string): string {
-  const seedNum = seedToNumber(seed)
-  const rng = mulberry32(seedNum)
-
-  const data = base64ToUint8(maskedBase64)
-  const out = new Uint8Array(data.length)
-
-  for (let i = 0; i < data.length; i++) {
-    const k: number = Math.floor(rng() * 256)
-    out[i] = (data[i] ?? 0) ^ k
-  }
-
-  const result = uint8ToUtf8(out)
-  console.log('[unmask] seed:', seed, 'masked:', maskedBase64, '=> value:', result)
-  return result
-}
-
-/* ---------- Demo ---------- */
-const seed = 'N01uwlIrQGGv5DAnraZI'
-const value = '3030303030'
-const masked = mask(value, seed)
-const restored = unmask('N01uwlIrQGGv5DAnraZI', seed)
-
-console.log('--- Özet ---')
-console.log('masked:', masked)
-console.log('restored:', restored)
+})
 </script>
+
+<style scoped>
+body {
+  font-family: system-ui, sans-serif;
+}
+</style>
