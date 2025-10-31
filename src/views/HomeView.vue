@@ -12,7 +12,7 @@ import { useSeedStore } from '@/stores/seedStore'
 //utils
 import { saveSession, getUserTopics, saveGlobalErrorLog } from '@/utils/firebaseUtils'
 import { mask, unmask } from '@/utils/maskUtils'
-
+import { toTitleCase } from '@/utils/TitleCorrUtils'
 // store'ları başlat
 const userStore = useUserStore()
 const topicStore = useTopicStore()
@@ -27,15 +27,6 @@ const dropdownItems = computed(() =>
 )
 
 const selectedTopic = ref<{ id: string; label: string } | null>(null)
-
-function toTitleCase(text: string): string {
-  return text
-    .toLocaleLowerCase('tr')
-    .split(' ')
-    .filter(Boolean)
-    .map((word) => word.charAt(0).toLocaleUpperCase('tr') + word.slice(1))
-    .join(' ')
-}
 
 // Yeni topic oluşturma fonksiyonu
 async function TopicCreate(label: string) {
