@@ -1,0 +1,41 @@
+@reference "tailwindcss/theme.css";
+
+.dropdown-wrapper {
+  @apply relative w-32 text-black dark:text-white;
+}
+
+.dropdown-button {
+  @apply w-full bg-transparent border-none px-3 py-2 rounded-lg flex justify-between items-center cursor-pointer text-black dark:text-white;
+  box-shadow:
+    -2px -2px 2px rgba(255, 255, 255, 1),
+    4px 4px 4px rgba(0, 0, 0, 0.4);
+}
+.dropdown-button:hover {
+  @apply bg-gray-100 dark:bg-neutral-800;
+}
+.dropdown-button:active {
+  box-shadow:
+    inset 2px 2px 4px rgba(0, 0, 0, 0.4),
+    inset -2px -2px 4px rgba(255, 255, 255, 1);
+}
+
+.dropdown-menu-ul {
+  @apply absolute z-10 mt-3 w-full bg-gray-100 border dark:bg-neutral-800 border-gray-300 dark:border-neutral-950 rounded-lg max-h-48 overflow-auto transition-all duration-200 list-none pl-0 ml-0;
+}
+
+.dropdown-menu-li {
+  @apply px-3 py-2 hover:bg-violet-100 dark:hover:bg-violet-950 cursor-pointer;
+}
+
+@media (prefers-color-scheme: dark) {
+  .dropdown-button {
+    box-shadow:
+      -3px -3px 3px rgba(255, 255, 255, 0.4),
+      3px 3px 3px rgba(0, 0, 0, 1);
+  }
+  .dropdown-button:active {
+    box-shadow:
+      inset 2px 2px 4px rgba(0, 0, 0, 1),
+      inset -2px -2px 4px rgba(255, 255, 255, 0.4);
+  }
+}

@@ -11,7 +11,9 @@
         />
       </div>
       <div class="border border-gray-300 rounded-lg md:order-1">
-        <div class="px-6 pt-6"></div>
+        <div class="px-6 pt-6">
+          <RcsDropdown v-model="selectedWeeklyOption" :items="weeklyDropdownItems" />
+        </div>
         <RcsChartLine :chartData="chartData" class="p-6 h-60 md:h-120" />
       </div>
     </div>
@@ -32,6 +34,7 @@ import { ref, computed } from 'vue'
 
 import RcsSearchableDropdown from '../components/RcsSoftSearchableDropdown/RcsSearchableDropdown.vue'
 import RcsChartLine from '../components/RcsChartLine/RcsChartLine.vue'
+import RcsDropdown from '../components/RcsDropdown/RcsDropdown.vue'
 
 import { useTopicStore } from '@/stores/topicStore'
 import { useUserStore } from '@/stores/userStore'
@@ -47,12 +50,19 @@ const seedStore = useSeedStore()
 
 const selectedTopic = ref<{ id: string; label: string } | null>(null)
 
+const selectedWeeklyOption = ref('weekly')
+const weeklyDropdownItems = [
+  { label: 'Daily', value: 'daily' },
+  { label: 'Weekly', value: 'weekly' },
+  { label: 'Monthly', value: 'monthly' },
+]
+
 const chartData = ref({
   labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
   datasets: [
     {
       label: 'Daily Time (minutes)',
-      data: [30, 45, 25, 60, 50, 70, 55],
+      data: [6, 13, 4, 7, 5, 1, 3],
       borderColor: 'MediumPurple',
       tension: 0.3,
     },
