@@ -1,11 +1,11 @@
 @reference "tailwindcss/theme.css";
 
 .header {
-  @apply fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 py-4 backdrop-blur-xs text-black dark:text-white shadow-md;
+  @apply fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 py-4 backdrop-blur-xs  shadow-md;
 }
 
 .logo-link {
-  @apply text-2xl font-semibold tracking-wide relative z-30 no-underline;
+  @apply text-2xl font-semibold tracking-wide text-black dark:text-white relative z-30 no-underline;
 }
 
 .nav-links {

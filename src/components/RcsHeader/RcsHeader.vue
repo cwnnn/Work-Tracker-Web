@@ -1,7 +1,10 @@
 <template>
   <header class="header">
     <div class="logo">
-      <router-link to="/" class="logo-link">Resul Can</router-link>
+      <router-link to="/" class="logo-link"
+        >Work Tracker
+        <sup class="ml-1 text-[10px] tracking-wide text-yellow-500">BETA</sup>
+      </router-link>
     </div>
 
     <nav class="nav-links">
