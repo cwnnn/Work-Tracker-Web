@@ -1,31 +1,37 @@
 <template>
-  <main class="max-h-screen mt-20 p-4 grid grid-rows-[5fr_3fr] gap-4">
-    <!-- sağ-->
-    <div class="grid grid-cols-1 md:grid-cols-[5fr_2fr] gap-4">
-      <div class="flex items-start justify-center md:order-2">
-        <RcsSearchableDropdown
-          v-model="selectedTopic"
-          :items="dropdownItems"
-          placeholder="Select topic..."
-          @create="TopicCreate"
-        />
-      </div>
-      <div class="border border-gray-300 rounded-lg md:order-1">
-        <div class="px-6 pt-6">
-          <RcsDropdown v-model="selectedWeeklyOption" :items="weeklyDropdownItems" />
-        </div>
-        <RcsChartLine :chartData="chartData" class="p-6 h-60 md:h-120" />
-      </div>
-    </div>
-    <!-- sol -->
-    <div class="grid grid-cols-1 md:grid-cols-[5fr_2fr] gap-4">
-      <div class="border border-gray-300 rounded-lg flex items-center justify-center md:order-3">
-        bar chart
-      </div>
-      <div class="border border-gray-300 rounded-lg flex items-center justify-center md:order-4">
-        <RcsChartPie :chartData="chartpieData" />
-      </div>
-    </div>
+  <main class="min-h-screen p-2 pt-20 grid gap-4 grid-cols-1 md:grid-cols-[5fr_2fr] md:grid-rows-2">
+    <!-- Sol Üst: Line Chart + Dropdown -->
+
+    <section class="p-2 flex flex-col items-center md:order-2">
+      <RcsSearchableDropdown
+        v-model="selectedTopic"
+        :items="dropdownItems"
+        placeholder="Select topic..."
+        @create="TopicCreate"
+      />
+    </section>
+    <section class="-2xl p-4 flex flex-col justify-between md:order-1">
+      <RcsDropdown v-model="selectedWeeklyOption" :items="weeklyDropdownItems" class="pl-6 mb-4" />
+      <RcsChartLine :chartData="chartData" class="px-6 h-60 md:h-120" />
+    </section>
+
+    <!-- Sağ Üst: Topic Dropdown -->
+
+    <section class="p-4 flex flex-col items-center md:pt-20 md:order-4">
+      <RcsChartPie :chartData="chartpieData" />
+    </section>
+
+    <!-- Sol Alt: Kartlar -->
+    <section class="p-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 md:order-3">
+      <RcsCard title="Experience Level" value="Master" subtitle="this topic" />
+      <RcsCard title="Today’s Focus Time" value="10" subtitle="Hours" />
+      <RcsCard title="Average Daily Time" value="7" subtitle="Hours" />
+      <RcsCard title="Focus Streak" value="10" subtitle="Days" />
+      <RcsCard title="Average Active Hour" value="9 PM" subtitle="Hours" />
+      <RcsCard title="Today’s Focus Time" value="3" subtitle="Hours" />
+    </section>
+
+    <!-- Sağ Alt: Pie Chart -->
   </main>
 </template>
 
@@ -36,6 +42,7 @@ import RcsSearchableDropdown from '../components/RcsSoftSearchableDropdown/RcsSe
 import RcsChartLine from '../components/RcsChartLine/RcsChartLine.vue'
 import RcsDropdown from '../components/RcsDropdown/RcsDropdown.vue'
 import RcsChartPie from '../components/RcsChartPie/RcsChartPie.vue'
+import RcsCard from '../components/RcsCard/RcsCard.vue'
 
 import { useTopicStore } from '@/stores/topicStore'
 import { useUserStore } from '@/stores/userStore'
