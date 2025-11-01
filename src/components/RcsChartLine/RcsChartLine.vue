@@ -17,11 +17,40 @@ let chart: Chart | null = null
 
 onMounted(() => {
   if (!canvas.value) return
-  chart = new Chart(canvas.value, {
-    type: 'line',
-    data: props.chartData,
-    options: { responsive: true, maintainAspectRatio: false },
-  })
+
+  const createChart = (isDark: boolean) => {
+    if (chart) chart.destroy()
+
+    chart = new Chart(canvas.value!, {
+      type: 'line',
+      data: props.chartData,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            ticks: { color: isDark ? '#f3f4f6' : '#111827' },
+            grid: { color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' },
+          },
+          y: {
+            ticks: { color: isDark ? '#f3f4f6' : '#111827' },
+            grid: { color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' },
+          },
+        },
+        plugins: {
+          legend: {
+            labels: { color: isDark ? '#f3f4f6' : '#111827' },
+          },
+        },
+      },
+    })
+  }
+
+  const media = window.matchMedia('(prefers-color-scheme: dark)')
+  createChart(media.matches)
+
+  // tema değişirse canlı güncelle
+  media.addEventListener('change', (e) => createChart(e.matches))
 })
 
 watch(
