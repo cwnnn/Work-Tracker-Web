@@ -55,7 +55,6 @@ export function mask(value: string, seed: string): string {
   }
 
   const b64 = uint8ToBase64(out)
-  console.log('[mask] seed:', seed, 'value:', value, '=> masked(base64):', b64)
   return b64
 }
 
@@ -72,6 +71,5 @@ export function unmask(maskedBase64: string, seed: string): string {
   }
 
   const result = uint8ToUtf8(out)
-  console.log('[unmask] seed:', seed, 'masked:', maskedBase64, '=> value:', result)
   return result
 }
