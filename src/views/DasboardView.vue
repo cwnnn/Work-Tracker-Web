@@ -1,5 +1,5 @@
 <template>
-  <main class="min-h-screen mt-20 p-4 grid grid-rows-[5fr_3fr] gap-4">
+  <main class="max-h-screen mt-20 p-4 grid grid-rows-[5fr_3fr] gap-4">
     <!-- sağ-->
     <div class="grid grid-cols-1 md:grid-cols-[5fr_2fr] gap-4">
       <div class="flex items-start justify-center md:order-2">
@@ -23,7 +23,7 @@
         bar chart
       </div>
       <div class="border border-gray-300 rounded-lg flex items-center justify-center md:order-4">
-        pie chart
+        <RcsChartPie :chartData="chartpieData" />
       </div>
     </div>
   </main>
@@ -35,6 +35,7 @@ import { ref, computed } from 'vue'
 import RcsSearchableDropdown from '../components/RcsSoftSearchableDropdown/RcsSearchableDropdown.vue'
 import RcsChartLine from '../components/RcsChartLine/RcsChartLine.vue'
 import RcsDropdown from '../components/RcsDropdown/RcsDropdown.vue'
+import RcsChartPie from '../components/RcsChartPie/RcsChartPie.vue'
 
 import { useTopicStore } from '@/stores/topicStore'
 import { useUserStore } from '@/stores/userStore'
@@ -68,6 +69,18 @@ const chartData = ref({
     },
   ],
 })
+
+const chartpieData = {
+  labels: ['Work', 'Break', 'Study', 'Other'],
+  datasets: [
+    {
+      label: 'Daily Activities',
+      data: [5, 2, 3, 1],
+      backgroundColor: ['#6366f1', '#f59e0b', '#10b981', '#ef4444'],
+      borderWidth: 1,
+    },
+  ],
+}
 
 const dropdownItems = computed(() =>
   topicStore.topics.map((t) => ({
