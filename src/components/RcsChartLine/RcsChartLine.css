@@ -1,7 +1,7 @@
 @reference "tailwindcss/theme.css";
 
 .rcs-panel {
-  @apply bg-transparent rounded-lg relative w-full h-full;
+  @apply bg-white/30 dark:bg-white/3 rounded-lg relative w-full h-full;
 
   box-shadow:
     -2px -2px 5px rgba(255, 255, 255, 1),

@@ -6,7 +6,7 @@
   @apply p-2 font-bold text-2xl cursor-pointer;
 }
 .dropdown-panel {
-  @apply bg-transparent rounded-lg pb-3 mt-1 w-full;
+  @apply bg-transparent bg-white/30 dark:bg-white/3 rounded-lg pb-3 mt-1 w-full;
 
   box-shadow:
     -2px -2px 5px rgba(255, 255, 255, 1),
@@ -22,7 +22,7 @@
   @apply p-1;
 }
 .dropdown-input {
-  @apply w-full border-none p-2 focus:outline-none rounded-lg bg-transparent font-bold text-[#2c3e50] dark:text-[#f0efed];
+  @apply w-full border-none p-2 focus:outline-none rounded-lg font-bold bg-black/5 dark:bg-black/30 text-[#2c3e50] dark:text-[#f0efed];
   box-shadow:
     inset -1px -1px 2px rgba(255, 255, 255, 1),
     inset -2px -2px 4px rgba(255, 255, 255, 0.7),

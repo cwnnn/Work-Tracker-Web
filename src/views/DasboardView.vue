@@ -1,5 +1,5 @@
 <template>
-  <main class="min-h-screen p-2 pt-20 grid gap-4 grid-cols-1 md:grid-cols-[5fr_2fr] md:grid-rows-2">
+  <main class="max-h-screen p-2 pt-20 grid gap-4 grid-cols-1 md:grid-cols-[5fr_2fr] md:grid-rows-2">
     <!-- Sol Üst: Line Chart + Dropdown -->
 
     <section class="p-2 flex flex-col items-center md:order-2">

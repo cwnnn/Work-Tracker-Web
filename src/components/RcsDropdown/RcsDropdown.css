@@ -5,7 +5,7 @@
 }
 
 .dropdown-button {
-  @apply w-full bg-transparent border-none px-3 py-2 rounded-lg flex justify-between items-center cursor-pointer text-black dark:text-white;
+  @apply w-full bg-white/30 dark:bg-white/5 border-none px-3 py-2 rounded-lg flex justify-between items-center cursor-pointer text-black dark:text-white;
   box-shadow:
     -2px -2px 2px rgba(255, 255, 255, 1),
     4px 4px 4px rgba(0, 0, 0, 0.4);
