@@ -1,0 +1,49 @@
+@reference "tailwindcss/theme.css";
+
+.RcsCard {
+  @apply bg-black/5 dark:bg-black/20 rounded-2xl p-4 flex flex-col justify-between transition duration-300 ease-in-out hover:-translate-y-1 min-h-32;
+  box-shadow:
+    inset -5px -5px 5px rgba(255, 255, 255, 1),
+    inset -8px -8px 8px rgba(255, 255, 255, 0.7),
+    inset 3px 3px 3px rgba(0, 0, 0, 0.3),
+    inset 5px 5px 5px rgba(0, 0, 0, 0.2);
+}
+@media (prefers-color-scheme: dark) {
+  .RcsCard {
+    box-shadow:
+      inset -7px -7px 7px rgba(255, 255, 255, 0.2),
+      inset -3px -3px 3px rgba(255, 255, 255, 0.1),
+      inset 7px 7px 7px rgba(0, 0, 0, 0.7);
+  }
+}
+.card-header {
+  @apply flex justify-between items-center mb-2;
+}
+
+.card-title {
+  @apply text-gray-700 dark:text-gray-300 font-semibold text-lg;
+}
+
+.card-body {
+  @apply flex flex-col items-center justify-between h-15;
+}
+
+.card-value {
+  @apply text-3xl font-bold text-gray-900 dark:text-white;
+}
+
+.card-subtitle {
+  @apply text-sm text-gray-500 dark:text-gray-400;
+}
+
+.RcsCard--sm {
+  @apply p-4 min-h-24 max-w-40 text-sm;
+}
+
+.RcsCard--md {
+  @apply p-8 min-h-32 text-base;
+}
+
+.RcsCard--lg {
+  @apply p-10 min-h-40 max-w-10 text-lg;
+}
