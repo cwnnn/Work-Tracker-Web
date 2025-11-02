@@ -1,7 +1,5 @@
 <template>
   <main class="max-h-screen p-2 pt-20 grid gap-4 grid-cols-1 md:grid-cols-[5fr_2fr] md:grid-rows-2">
-    <!-- Sol Üst: Line Chart + Dropdown -->
-
     <section class="p-2 flex flex-col items-center md:order-2">
       <RcsSearchableDropdown
         v-model="selectedTopic"
@@ -9,19 +7,17 @@
         placeholder="Select topic..."
         @create="TopicCreate"
       />
+      <button @click="getdaily">test</button>
     </section>
     <section class="-2xl p-4 flex flex-col justify-between md:order-1">
       <RcsDropdown v-model="selectedWeeklyOption" :items="weeklyDropdownItems" class="pl-6 mb-4" />
       <RcsChartLine :chartData="chartData" class="px-6 h-60 md:h-120" />
     </section>
 
-    <!-- Sağ Üst: Topic Dropdown -->
-
-    <section class="p-4 flex flex-col items-center md:pt-20 md:order-4">
+    <section class="p-4 flex flex-col items-center md:pt-10 md:order-4">
       <RcsChartPie :chartData="chartpieData" />
     </section>
 
-    <!-- Sol Alt: Kartlar -->
     <section class="p-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 md:order-3">
       <RcsCard title="Experience Level" value="Master" subtitle="this topic" />
       <RcsCard title="Today’s Focus Time" value="10" subtitle="Hours" />
@@ -30,13 +26,11 @@
       <RcsCard title="Average Active Hour" value="9 PM" subtitle="Hours" />
       <RcsCard title="Today’s Focus Time" value="3" subtitle="Hours" />
     </section>
-
-    <!-- Sağ Alt: Pie Chart -->
   </main>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 
 import RcsSearchableDropdown from '../components/RcsSoftSearchableDropdown/RcsSearchableDropdown.vue'
 import RcsChartLine from '../components/RcsChartLine/RcsChartLine.vue'
@@ -51,31 +45,66 @@ import { useSeedStore } from '@/stores/seedStore'
 import { saveSession, saveGlobalErrorLog } from '@/utils/firebaseUtils'
 import { toTitleCase } from '@/utils/TitleCorrUtils'
 import { mask } from '@/utils/maskUtils'
+import { getTodaySessionsByTopic } from '@/utils/firebaseUtilsDashboard'
 
 const topicStore = useTopicStore()
 const userStore = useUserStore()
 const seedStore = useSeedStore()
-
+const weeklyTotal = ref()
 const selectedTopic = ref<{ id: string; label: string } | null>(null)
 
-const selectedWeeklyOption = ref('weekly')
+// seçili seçenek
+const selectedWeeklyOption = ref('daily')
+
+const chartData = ref({
+  labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
+  datasets: [
+    {
+      label: 'Focus Time (minutes)',
+      data: Array(24).fill(0),
+      borderWidth: 2,
+      tension: 0.3,
+    },
+  ],
+})
+
+// chart'ı güncelleyen fonksiyon
+async function updateChart() {
+  const userId = userStore.userId
+  const topicId = selectedTopic.value!.id
+  if (!userId || !topicId) return console.warn('Kullanıcı veya topic eksik.')
+
+  if (selectedWeeklyOption.value === 'daily') {
+    const hours = await getTodaySessionsByTopic(userId, topicId)
+    chartData.value.labels = hours.map((h) => `${h.id}:00`)
+    chartData.value.datasets[0]!.data = hours.map((h) => h.value)
+  } else {
+    // ileride haftalık fonksiyon gelecek
+    console.log('Weekly seçeneği henüz eklenmedi')
+  }
+}
+
+// dropdown değişince yeniden çek
+watch(selectedWeeklyOption, updateChart)
+
+// ilk yüklemede de çalıştır
+onMounted(updateChart)
+
+async function getdaily() {
+  if (!userStore.userId || !selectedTopic.value) {
+    return
+  }
+  const topicId = selectedTopic.value.id
+  weeklyTotal.value = await getTodaySessionsByTopic(userStore.userId, topicId)
+  console.log('weekly', weeklyTotal)
+  console.log('user', userStore.userId, ' : topicid', topicId)
+}
+
 const weeklyDropdownItems = [
   { label: 'Daily', value: 'daily' },
   { label: 'Weekly', value: 'weekly' },
   { label: 'Monthly', value: 'monthly' },
 ]
-
-const chartData = ref({
-  labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-  datasets: [
-    {
-      label: 'Daily Time (minutes)',
-      data: [6, 13, 4, 7, 5, 1, 3],
-      borderColor: 'MediumPurple',
-      tension: 0.3,
-    },
-  ],
-})
 
 const chartpieData = {
   labels: ['Work', 'Break', 'Study', 'Other'],
