@@ -45,7 +45,12 @@ import { useSeedStore } from '@/stores/seedStore'
 import { saveSession, saveGlobalErrorLog } from '@/utils/firebaseUtils'
 import { toTitleCase } from '@/utils/TitleCorrUtils'
 import { mask } from '@/utils/maskUtils'
-import { getTodaySessionsByTopic } from '@/utils/firebaseUtilsDashboard'
+import {
+  getMonthlySessionsByTopic,
+  getTodaySessionsByTopic,
+  getWeeklySessionsByTopic,
+  getYearlySessionsByTopic,
+} from '@/utils/firebaseUtilsLineChard'
 
 const topicStore = useTopicStore()
 const userStore = useUserStore()
@@ -53,14 +58,28 @@ const seedStore = useSeedStore()
 const weeklyTotal = ref()
 const selectedTopic = ref<{ id: string; label: string } | null>(null)
 
-// seçili seçenek
+const dropdownItems = computed(() =>
+  topicStore.topics.map((t) => ({
+    id: t.id,
+    label: t.topic,
+  })),
+)
+
 const selectedWeeklyOption = ref('daily')
+
+const weeklyDropdownItems = [
+  { label: 'Daily', value: 'daily' },
+  { label: 'Weekly', value: 'weekly' },
+  { label: 'Monthly', value: 'monthly' },
+  { label: 'Yearly', value: 'yearly' },
+]
 
 const chartData = ref({
   labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
   datasets: [
     {
-      label: 'Focus Time (minutes)',
+      borderColor: 'MediumPurple',
+      label: 'minutes',
       data: Array(24).fill(0),
       borderWidth: 2,
       tension: 0.3,
@@ -71,24 +90,50 @@ const chartData = ref({
 // chart'ı güncelleyen fonksiyon
 async function updateChart() {
   const userId = userStore.userId
-  const topicId = selectedTopic.value!.id
+  const topicId = selectedTopic.value?.id
   if (!userId || !topicId) return console.warn('Kullanıcı veya topic eksik.')
 
   if (selectedWeeklyOption.value === 'daily') {
     const hours = await getTodaySessionsByTopic(userId, topicId)
     chartData.value.labels = hours.map((h) => `${h.id}:00`)
     chartData.value.datasets[0]!.data = hours.map((h) => h.value)
-  } else {
-    // ileride haftalık fonksiyon gelecek
-    console.log('Weekly seçeneği henüz eklenmedi')
+    chartData.value.datasets[0]!.label = 'Minutes'
+  } else if (selectedWeeklyOption.value === 'weekly') {
+    const weekly = await getWeeklySessionsByTopic(userId, topicId)
+    chartData.value.labels = (weekly.labels ?? []).map((l) => l ?? '')
+    chartData.value.datasets[0]!.data = weekly.data
+    chartData.value.datasets[0]!.label = 'Hours'
+  } else if (selectedWeeklyOption.value === 'monthly') {
+    const monthly = await getMonthlySessionsByTopic(userId, topicId)
+    chartData.value.labels = (monthly.labels ?? []).map((l) => l ?? '')
+    chartData.value.datasets[0]!.data = monthly.data
+    chartData.value.datasets[0]!.label = 'Hours'
+  } else if (selectedWeeklyOption.value === 'yearly') {
+    const yearly = await getYearlySessionsByTopic(userId, topicId)
+    chartData.value.labels = (yearly.labels ?? []).map((l) => l ?? '')
+    chartData.value.datasets[0]!.data = yearly.data
+    chartData.value.datasets[0]!.label = 'Hours'
   }
 }
 
-// dropdown değişince yeniden çek
-watch(selectedWeeklyOption, updateChart)
+//dropdown değişince yeniden çek
+onMounted(() => {
+  updateChart() //ilk grafiği yükle
+})
 
-// ilk yüklemede de çalıştır
-onMounted(updateChart)
+//topic listesi yüklendiğinde ilkini öğeyi seç
+watch(
+  dropdownItems,
+  (items) => {
+    if (items.length > 1 && !selectedTopic.value) {
+      selectedTopic.value = items[0] || null
+    }
+  },
+  { immediate: true }, // eğer liste hazırsa hemen çalışır
+)
+
+//topic veya weekly option değiştiğinde grafik güncelle
+watch([selectedTopic, selectedWeeklyOption], updateChart)
 
 async function getdaily() {
   if (!userStore.userId || !selectedTopic.value) {
@@ -99,12 +144,6 @@ async function getdaily() {
   console.log('weekly', weeklyTotal)
   console.log('user', userStore.userId, ' : topicid', topicId)
 }
-
-const weeklyDropdownItems = [
-  { label: 'Daily', value: 'daily' },
-  { label: 'Weekly', value: 'weekly' },
-  { label: 'Monthly', value: 'monthly' },
-]
 
 const chartpieData = {
   labels: ['Work', 'Break', 'Study', 'Other'],
@@ -117,13 +156,6 @@ const chartpieData = {
     },
   ],
 }
-
-const dropdownItems = computed(() =>
-  topicStore.topics.map((t) => ({
-    id: t.id,
-    label: t.topic,
-  })),
-)
 
 async function TopicCreate(label: string) {
   try {
