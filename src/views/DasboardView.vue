@@ -19,7 +19,7 @@
 
     <section class="p-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 md:order-3">
       <RcsCard title="Experience Level" value="Master" subtitle="this topic" />
-      <RcsCard title="Today’s Focus Time" value="10" subtitle="Hours" />
+      <RcsCard title="Today’s Focus Time" :value="totalHours" subtitle="Hours" />
       <RcsCard title="Average Daily Time" value="7" subtitle="Hours" />
       <RcsCard title="Focus Streak" value="10" subtitle="Days" />
       <RcsCard title="Average Active Hour" value="9 PM" subtitle="Hours" />
@@ -42,6 +42,7 @@ import { useUserStore } from '@/stores/userStore'
 import { useSeedStore } from '@/stores/seedStore'
 
 import { saveSession, saveGlobalErrorLog } from '@/utils/firebaseUtils'
+import { getAllTopicsWithTotalHours } from '@/utils/firebaseUtilsPieChard'
 import { toTitleCase } from '@/utils/TitleCorrUtils'
 import { mask } from '@/utils/maskUtils'
 import {
@@ -50,6 +51,7 @@ import {
   getWeeklySessionsByTopic,
   getYearlySessionsByTopic,
 } from '@/utils/firebaseUtilsLineChard'
+import { getTotalHoursByTopic } from '@/utils/firebaseUtilsCard'
 
 const topicStore = useTopicStore()
 const userStore = useUserStore()
@@ -130,20 +132,68 @@ watch(
   { immediate: true }, // eğer liste hazırsa hemen çalışır
 )
 
+const totalHours = ref<number>(0)
+async function updateTotalHours() {
+  const userId = userStore.userId
+  const topicId = selectedTopic.value?.id
+  if (!userId || !topicId) return
+
+  totalHours.value = await getTotalHoursByTopic(userId, topicId)
+  console.log('Toplam süre (saat):', totalHours.value)
+}
+
 //topic veya weekly option değiştiğinde grafik güncelle
 watch([selectedTopic, selectedWeeklyOption], updateChart)
-
-const chartpieData = {
-  labels: ['Work', 'Break', 'Study', 'Other'],
+watch(selectedTopic, updateTotalHours)
+const chartpieData = ref({
+  labels: [] as string[],
   datasets: [
     {
-      label: 'Daily Activities',
-      data: [5, 2, 3, 1],
-      backgroundColor: ['#6366f1', '#f59e0b', '#10b981', '#ef4444'],
+      label: 'Total Hours',
+      backgroundColor: [
+        '#FF6384', // kırmızımsı pembe
+        '#36A2EB', // mavi
+        '#FFCE56', // sarı
+        '#4BC0C0', // turkuaz
+        '#9966FF', // mor
+        '#FF9F40', // turuncu
+        '#C9CBCF', // gri
+        '#8BC34A', // yeşil
+        '#F44336', // kırmızı
+        '#00BCD4', // cam göbeği
+        '#E91E63', // fuşya
+        '#9C27B0', // menekşe
+        '#3F51B5', // lacivert
+        '#03A9F4', // açık mavi
+        '#009688', // koyu turkuaz
+        '#CDDC39', // lime yeşili
+        '#FFEB3B', // parlak sarı
+        '#FFC107', // kehribar
+        '#FF5722', // koyu turuncu
+        '#795548', // kahverengi
+      ],
+      data: [] as number[],
       borderWidth: 1,
     },
   ],
+})
+
+async function loadPieChart() {
+  const userId = userStore.userId
+  if (!userId) return console.warn('Kullanıcı eksik.')
+
+  const { labels, data } = await getAllTopicsWithTotalHours(userId)
+
+  chartpieData.value.labels = labels
+  chartpieData.value.datasets[0]!.data = data
+  chartpieData.value.datasets[0]!.label = 'Total Hours'
 }
+
+watch(
+  () => userStore.userId,
+  () => loadPieChart(),
+  { immediate: true },
+)
 
 async function TopicCreate(label: string) {
   try {
