@@ -7,7 +7,6 @@
         placeholder="Select topic..."
         @create="TopicCreate"
       />
-      <button @click="getdaily">test</button>
     </section>
     <section class="-2xl p-4 flex flex-col justify-between md:order-1">
       <RcsDropdown v-model="selectedWeeklyOption" :items="weeklyDropdownItems" class="pl-6 mb-4" />
@@ -55,7 +54,6 @@ import {
 const topicStore = useTopicStore()
 const userStore = useUserStore()
 const seedStore = useSeedStore()
-const weeklyTotal = ref()
 const selectedTopic = ref<{ id: string; label: string } | null>(null)
 
 const dropdownItems = computed(() =>
@@ -134,16 +132,6 @@ watch(
 
 //topic veya weekly option değiştiğinde grafik güncelle
 watch([selectedTopic, selectedWeeklyOption], updateChart)
-
-async function getdaily() {
-  if (!userStore.userId || !selectedTopic.value) {
-    return
-  }
-  const topicId = selectedTopic.value.id
-  weeklyTotal.value = await getTodaySessionsByTopic(userStore.userId, topicId)
-  console.log('weekly', weeklyTotal)
-  console.log('user', userStore.userId, ' : topicid', topicId)
-}
 
 const chartpieData = {
   labels: ['Work', 'Break', 'Study', 'Other'],
