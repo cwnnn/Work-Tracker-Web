@@ -1,6 +1,6 @@
 <script setup lang="ts">
 //vue
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onUnmounted, watch } from 'vue'
 //component
 import RcsStopwatch from '../components/RcsStopwatch/RcsStopwatch.vue'
 import RcsSoftButton from '@/components/RcsSoftButton/RcsSoftButton.vue'
@@ -10,7 +10,7 @@ import { useUserStore } from '@/stores/userStore'
 import { useTopicStore } from '@/stores/topicStore'
 import { useSeedStore } from '@/stores/seedStore'
 //utils
-import { saveSession, getUserTopics, saveGlobalErrorLog } from '@/utils/firebaseUtils'
+import { saveSession, saveGlobalErrorLog } from '@/utils/firebaseUtils'
 import { mask, unmask } from '@/utils/maskUtils'
 import { toTitleCase } from '@/utils/TitleCorrUtils'
 // store'ları başlat
@@ -268,21 +268,6 @@ watch(selectedTopic, (newVal, oldVal) => {
   if (!oldVal || newVal.id !== oldVal.id) {
     LOCAL_KEY.value = `topic_${newVal.label}`
     resetTimerfunc()
-  }
-})
-
-onMounted(async () => {
-  try {
-    const topics = await getUserTopics(userStore.userId!)
-    topicStore.setTopics(topics)
-    console.log('Topic listesi yüklendi:', topics)
-    console.log('lokaldeki veri', localStorage.getItem(LOCAL_KEY.value))
-  } catch (err: unknown) {
-    const e = err instanceof Error ? err : new Error(String(err))
-    console.error('[onMounted] Topic listesi yüklenemedi:', e)
-    await saveGlobalErrorLog(e.message, 'onMounted', userStore.userId ?? undefined, e.stack, {
-      userId: userStore.userId,
-    })
   }
 })
 </script>
