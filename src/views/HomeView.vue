@@ -1,6 +1,9 @@
 <script setup lang="ts">
 //vue
 import { ref, computed, onUnmounted, watch } from 'vue'
+
+import { collection, doc } from 'firebase/firestore'
+import { db } from '@/firebase'
 //component
 import RcsStopwatch from '../components/RcsStopwatch/RcsStopwatch.vue'
 import RcsSoftButton from '@/components/RcsSoftButton/RcsSoftButton.vue'
@@ -13,6 +16,7 @@ import { useSeedStore } from '@/stores/seedStore'
 import { saveSession, saveGlobalErrorLog } from '@/utils/firebaseUtils'
 import { mask, unmask } from '@/utils/maskUtils'
 import { toTitleCase } from '@/utils/TitleCorrUtils'
+
 // store'ları başlat
 const userStore = useUserStore()
 const topicStore = useTopicStore()
@@ -35,14 +39,19 @@ async function TopicCreate(label: string) {
       console.error('User ID bulunamadı!')
       return
     }
+
     const seed = seedStore.seed
     if (!seed) {
       console.error('Seed bulunamadı!')
       return
     }
-    await saveSession(null, userStore.userId, toTitleCase(label), mask('0', seed), seed)
 
-    const newTopic = { id: crypto.randomUUID(), topic: toTitleCase(label) }
+    const newDocRef = doc(collection(db, 'users', userStore.userId, 'sessions'))
+    const newId = newDocRef.id
+
+    await saveSession(newId, userStore.userId, toTitleCase(label), mask('0', seed), seed)
+
+    const newTopic = { id: newId, topic: toTitleCase(label) }
     topicStore.addTopic(newTopic)
     selectedTopic.value = { id: newTopic.id, label: newTopic.topic }
 

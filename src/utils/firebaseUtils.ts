@@ -40,7 +40,7 @@ export async function saveGlobalErrorLog(
 
 // Session kaydetme
 export async function saveSession(
-  id: string | null,
+  id: string,
   userId: string,
   topic: string,
   maskedDuration: string,
@@ -63,11 +63,10 @@ export async function saveSession(
       return
     }
 
-    const generatedId = id || doc(collection(db, 'users', userId, 'sessions')).id
     const sessionsRef = collection(db, 'users', userId, 'sessions')
 
     await addDoc(sessionsRef, {
-      id: generatedId,
+      id,
       topic,
       durationValue: duration,
       date: Timestamp.fromDate(new Date()),

@@ -31,6 +31,9 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 
+import { db } from '../firebase'
+import { collection, doc } from 'firebase/firestore'
+
 import RcsSearchableDropdown from '../components/RcsSoftSearchableDropdown/RcsSearchableDropdown.vue'
 import RcsChartLine from '../components/RcsChartLine/RcsChartLine.vue'
 import RcsDropdown from '../components/RcsDropdown/RcsDropdown.vue'
@@ -214,14 +217,19 @@ async function TopicCreate(label: string) {
       console.error('User ID bulunamadı!')
       return
     }
+
     const seed = seedStore.seed
     if (!seed) {
       console.error('Seed bulunamadı!')
       return
     }
-    await saveSession(null, userStore.userId, toTitleCase(label), mask('0', seed), seed)
 
-    const newTopic = { id: crypto.randomUUID(), topic: toTitleCase(label) }
+    const newDocRef = doc(collection(db, 'users', userStore.userId, 'sessions'))
+    const newId = newDocRef.id
+
+    await saveSession(newId, userStore.userId, toTitleCase(label), mask('0', seed), seed)
+
+    const newTopic = { id: newId, topic: toTitleCase(label) }
     topicStore.addTopic(newTopic)
     selectedTopic.value = { id: newTopic.id, label: newTopic.topic }
 
