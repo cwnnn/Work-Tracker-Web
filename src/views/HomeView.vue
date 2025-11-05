@@ -2,20 +2,19 @@
 //vue
 import { ref, computed, onUnmounted, watch } from 'vue'
 
-import { collection, doc } from 'firebase/firestore'
-import { db } from '@/firebase'
 //component
 import RcsStopwatch from '../components/RcsStopwatch/RcsStopwatch.vue'
-import RcsSoftButton from '@/components/RcsSoftButton/RcsSoftButton.vue'
+import RcsSoftButton from '../components/RcsSoftButton/RcsSoftButton.vue'
 import RcsSearchableDropdown from '../components/RcsSoftSearchableDropdown/RcsSearchableDropdown.vue'
 //stores
-import { useUserStore } from '@/stores/userStore'
-import { useTopicStore } from '@/stores/topicStore'
-import { useSeedStore } from '@/stores/seedStore'
+import { useUserStore } from '../stores/userStore'
+import { useTopicStore } from '../stores/topicStore'
+import { useSeedStore } from '../stores/seedStore'
 //utils
-import { saveSession, saveGlobalErrorLog } from '@/utils/firebaseUtils'
-import { mask, unmask } from '@/utils/maskUtils'
-import { toTitleCase } from '@/utils/TitleCorrUtils'
+import { saveGlobalErrorLog } from '../utils/firebaseUtils'
+import { createTopic, saveSession } from '../utils/firebaseUtils/SaveSessions'
+import { mask, unmask } from '../utils/maskUtils'
+import { toTitleCase } from '../utils/TitleCorrUtils'
 
 // store'ları başlat
 const userStore = useUserStore()
@@ -32,37 +31,31 @@ const dropdownItems = computed(() =>
 
 const selectedTopic = ref<{ id: string; label: string } | null>(null)
 
-// Yeni topic oluşturma fonksiyonu
+//Yeni topic oluşturma fonksiyonu
 async function TopicCreate(label: string) {
   try {
-    if (!userStore.userId) {
+    const userId = userStore.userId
+    if (!userId) {
       console.error('User ID bulunamadı!')
       return
     }
 
-    const seed = seedStore.seed
-    if (!seed) {
-      console.error('Seed bulunamadı!')
-      return
-    }
+    const topicName = toTitleCase(label)
+    const topic = await createTopic(userId, topicName)
 
-    const newDocRef = doc(collection(db, 'users', userStore.userId, 'sessions'))
-    const newId = newDocRef.id
-
-    await saveSession(newId, userStore.userId, toTitleCase(label), mask('0', seed), seed)
-
-    const newTopic = { id: newId, topic: toTitleCase(label) }
+    // store’a ekle
+    const newTopic = { id: topic.topicId, topic: topicName }
     topicStore.addTopic(newTopic)
+
+    // seçili topic olarak ata
     selectedTopic.value = { id: newTopic.id, label: newTopic.topic }
 
-    console.log('Yeni session oluşturuldu ve topic eklendi:', label)
-  } catch (err: unknown) {
-    const e = err instanceof Error ? err : new Error(String(err))
-    console.error('Yeni topic/session oluşturulamadı:', e)
+    console.log(`Yeni topic oluşturuldu: ${topicName}`)
+  } catch (error: unknown) {
+    const e = error instanceof Error ? error : new Error(String(error))
+    console.error('Topic oluşturulamadı:', e)
     await saveGlobalErrorLog(e.message, 'TopicCreate', userStore.userId ?? undefined, e.stack, {
       label,
-      seed: seedStore.seed,
-      selectedTopic: selectedTopic.value,
     })
   }
 }
@@ -243,13 +236,7 @@ async function handlePress(pressed: boolean) {
 
       if (time > 60 * 1000) {
         try {
-          await saveSession(
-            selectedTopic.value.id,
-            userStore.userId,
-            selectedTopic.value?.label,
-            masked,
-            seed,
-          )
+          await saveSession(userStore.userId, selectedTopic.value.id, masked, seed)
           localStorage.removeItem(LOCAL_KEY.value)
         } catch (err: unknown) {
           const e = err instanceof Error ? err : new Error(String(err))

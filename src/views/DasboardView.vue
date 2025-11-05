@@ -17,22 +17,28 @@
       <RcsChartPie :chartData="chartpieData" />
     </section>
 
-    <section class="p-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 md:order-3">
-      <RcsCard title="Experience Level" value="Master" subtitle="this topic" />
-      <RcsCard title="Today’s Focus Time" :value="totalHours ?? '0.00'" subtitle="Hours" />
-      <RcsCard title="Average Daily Time" value="7" subtitle="Hours" />
-      <RcsCard title="Focus Streak" value="10" subtitle="Days" />
-      <RcsCard title="Average Active Hour" value="9 PM" subtitle="Hours" />
-      <RcsCard title="Today’s Focus Time" value="3" subtitle="Hours" />
+    <section class="p-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 md:order-3">
+      <RcsCard title="Experience Level" :value="currentStats?.levelName!" subtitle="This Topic" />
+      <RcsCard
+        title="Total Focus (This Topic)"
+        :value="MsToHour(currentStats?.totalMs!)"
+        subtitle="Hours"
+      />
+      <RcsCard title="Avg. Daily Focus" value=" 0" subtitle="Hours" />
+      <RcsCard title="Today’s Focus" value="0" subtitle="Hours" />
+
+      <!-- SPACER -->
+
+      <RcsCard title="Focus Streak" value="0" subtitle="Days" />
+      <RcsCard title="Peak Focus Hour" value="0" subtitle="Local Time" />
+      <RcsCard title="Total Focus (All Topics)" value="0" subtitle="Hours" />
+      <RcsCard title="Avg. Daily Focus" value="0" subtitle="Hours" />
     </section>
   </main>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-
-import { db } from '../firebase'
-import { collection, doc } from 'firebase/firestore'
 
 import RcsSearchableDropdown from '../components/RcsSoftSearchableDropdown/RcsSearchableDropdown.vue'
 import RcsChartLine from '../components/RcsChartLine/RcsChartLine.vue'
@@ -42,23 +48,23 @@ import RcsCard from '../components/RcsCard/RcsCard.vue'
 
 import { useTopicStore } from '@/stores/topicStore'
 import { useUserStore } from '@/stores/userStore'
-import { useSeedStore } from '@/stores/seedStore'
+import { useTopicStatsStore } from '@/stores/topicStatsStore'
 
-import { saveSession, saveGlobalErrorLog } from '@/utils/firebaseUtils'
+import { saveGlobalErrorLog } from '@/utils/firebaseUtils'
+import { createTopic } from '../utils/firebaseUtils/SaveSessions'
 import { getAllTopicsWithTotalHours } from '@/utils/firebaseUtilsPieChard'
 import { toTitleCase } from '@/utils/TitleCorrUtils'
-import { mask } from '@/utils/maskUtils'
+
 import {
   getMonthlySessionsByTopic,
   getTodaySessionsByTopic,
   getWeeklySessionsByTopic,
   getYearlySessionsByTopic,
 } from '@/utils/firebaseUtilsLineChard'
-import { getTotalHoursByTopic } from '@/utils/firebaseUtilsCard'
 
 const topicStore = useTopicStore()
 const userStore = useUserStore()
-const seedStore = useSeedStore()
+const topicStatsStore = useTopicStatsStore()
 const selectedTopic = ref<{ id: string; label: string } | null>(null)
 
 const dropdownItems = computed(() =>
@@ -67,6 +73,18 @@ const dropdownItems = computed(() =>
     label: t.topic,
   })),
 )
+
+const currentStats = computed(() => {
+  if (!selectedTopic.value) return null
+  return topicStatsStore.getStats(selectedTopic.value.id)
+})
+function MsToHour(totalMs: number) {
+  const totalMinutes = Math.floor(totalMs / 60000)
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+
+  return `${hours}:${minutes.toString().padStart(2, '0')}`
+}
 
 const selectedWeeklyOption = ref('daily')
 
@@ -135,31 +153,8 @@ watch(
   { immediate: true }, // eğer liste hazırsa hemen çalışır
 )
 
-const totalHours = ref<string>()
-
-async function updateTotalHours() {
-  const userId = userStore.userId
-  const topicId = selectedTopic.value?.id
-  if (!userId || !topicId) return
-
-  totalHours.value = await getTotalHoursByTopic(userId, topicId)
-  console.log('Toplam süre (saat):', totalHours.value)
-}
-
 //topic veya weekly option değiştiğinde grafik güncelle
 watch([selectedTopic, selectedWeeklyOption], updateChart)
-
-onMounted(() => {
-  if (selectedTopic.value) {
-    updateTotalHours()
-  }
-})
-
-watch(selectedTopic, (newVal, oldVal) => {
-  if (newVal && newVal.id !== oldVal?.id) {
-    updateTotalHours()
-  }
-})
 
 const chartpieData = ref({
   labels: [] as string[],
@@ -211,36 +206,31 @@ watch(
   { immediate: true },
 )
 
+//Yeni topic oluşturma fonksiyonu
 async function TopicCreate(label: string) {
   try {
-    if (!userStore.userId) {
+    const userId = userStore.userId
+    if (!userId) {
       console.error('User ID bulunamadı!')
       return
     }
 
-    const seed = seedStore.seed
-    if (!seed) {
-      console.error('Seed bulunamadı!')
-      return
-    }
+    const topicName = toTitleCase(label)
+    const topic = await createTopic(userId, topicName)
 
-    const newDocRef = doc(collection(db, 'users', userStore.userId, 'sessions'))
-    const newId = newDocRef.id
-
-    await saveSession(newId, userStore.userId, toTitleCase(label), mask('0', seed), seed)
-
-    const newTopic = { id: newId, topic: toTitleCase(label) }
+    // store’a ekle
+    const newTopic = { id: topic.topicId, topic: topicName }
     topicStore.addTopic(newTopic)
+
+    // seçili topic olarak ata
     selectedTopic.value = { id: newTopic.id, label: newTopic.topic }
 
-    console.log('Yeni session oluşturuldu ve topic eklendi:', label)
-  } catch (err: unknown) {
-    const e = err instanceof Error ? err : new Error(String(err))
-    console.error('Yeni topic/session oluşturulamadı:', e)
+    console.log(`Yeni topic oluşturuldu: ${topicName}`)
+  } catch (error: unknown) {
+    const e = error instanceof Error ? error : new Error(String(error))
+    console.error('Topic oluşturulamadı:', e)
     await saveGlobalErrorLog(e.message, 'TopicCreate', userStore.userId ?? undefined, e.stack, {
       label,
-      seed: seedStore.seed,
-      selectedTopic: selectedTopic.value,
     })
   }
 }
