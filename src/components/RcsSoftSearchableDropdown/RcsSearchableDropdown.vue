@@ -27,8 +27,17 @@
         </li>
 
         <!-- Dışarıdan yönetilecek "create" eventi -->
-        <li v-if="query && !filteredItems.length" @click="emitCreate" class="dropdown-create">
-          + Create "{{ query }}"
+        <li
+          v-if="
+            query.trim() &&
+            !props.items.some(
+              (item) => item.label.toLowerCase().trim() === query.trim().toLowerCase(),
+            )
+          "
+          @click="emitCreate"
+          class="dropdown-create"
+        >
+          + Create "{{ query.trim() }}"
         </li>
       </ul>
     </div>
@@ -49,9 +58,11 @@ const emit = defineEmits<{
 const isOpen = ref(false)
 const query = ref('')
 
-const filteredItems = computed(() =>
-  props.items.filter((item) => item.label.toLowerCase().includes(query.value.toLowerCase())),
-)
+const filteredItems = computed(() => {
+  const q = query.value.trim().toLowerCase()
+  if (!q) return props.items // boşsa hiçbir filtreleme yapma
+  return props.items.filter((item) => item.label.toLowerCase().includes(q))
+})
 
 function toggleDropdown() {
   isOpen.value = !isOpen.value
@@ -63,7 +74,7 @@ function selectItem(item: DropdownItem) {
   query.value = ''
 }
 
-// 🔹 Artık sadece dışarıya haber verir, kaydetme işlemi yok
+//Artık sadece dışarıya haber verir, kaydetme işlemi yok
 function emitCreate() {
   emit('create', query.value)
   isOpen.value = false
