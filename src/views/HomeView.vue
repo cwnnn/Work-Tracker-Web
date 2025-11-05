@@ -241,7 +241,7 @@ async function handlePress(pressed: boolean) {
             masked,
             seed,
           )
-          saveAccumulatedTime(0)
+          localStorage.removeItem(LOCAL_KEY.value)
         } catch (err: unknown) {
           const e = err instanceof Error ? err : new Error(String(err))
           console.error('[handlePress] saveSession hatası:', e)
@@ -266,7 +266,11 @@ async function handlePress(pressed: boolean) {
 watch(selectedTopic, (newVal, oldVal) => {
   if (!newVal) return
   if (!oldVal || newVal.id !== oldVal.id) {
-    LOCAL_KEY.value = `topic_${newVal.label}`
+    const seed = seedStore.seed
+    if (!seed) return console.warn('Seed bulunamadı (LOCAL_KEY oluşturulamadı).')
+
+    const maskedId = mask(newVal.id, seed)
+    LOCAL_KEY.value = `topic_${maskedId}`
     resetTimerfunc()
   }
 })
