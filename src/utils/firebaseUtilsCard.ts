@@ -15,12 +15,13 @@ export async function getTotalHoursByTopic(userId: string, topicId: string) {
       }
     })
 
-    //milisaniyeyi saate çevir (örneğin 2.5 => 2 saat 30 dakika)
-    const totalHours = totalMs / (1000 * 60 * 60)
+    const totalMinutes = Math.floor(totalMs / 60000)
+    const hours = Math.floor(totalMinutes / 60)
+    const minutes = totalMinutes % 60
 
-    return totalHours
+    return `${hours}:${minutes.toString().padStart(2, '0')}`
   } catch (error) {
     console.error('[getTotalHoursByTopic] Hata:', error)
-    return 0
+    return '0:00'
   }
 }

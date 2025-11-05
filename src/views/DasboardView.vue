@@ -19,7 +19,7 @@
 
     <section class="p-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 md:order-3">
       <RcsCard title="Experience Level" value="Master" subtitle="this topic" />
-      <RcsCard title="Today’s Focus Time" :value="totalHours" subtitle="Hours" />
+      <RcsCard title="Today’s Focus Time" :value="totalHours ?? '0.00'" subtitle="Hours" />
       <RcsCard title="Average Daily Time" value="7" subtitle="Hours" />
       <RcsCard title="Focus Streak" value="10" subtitle="Days" />
       <RcsCard title="Average Active Hour" value="9 PM" subtitle="Hours" />
@@ -132,7 +132,8 @@ watch(
   { immediate: true }, // eğer liste hazırsa hemen çalışır
 )
 
-const totalHours = ref<number>(0)
+const totalHours = ref<string>()
+
 async function updateTotalHours() {
   const userId = userStore.userId
   const topicId = selectedTopic.value?.id
@@ -144,7 +145,19 @@ async function updateTotalHours() {
 
 //topic veya weekly option değiştiğinde grafik güncelle
 watch([selectedTopic, selectedWeeklyOption], updateChart)
-watch(selectedTopic, updateTotalHours)
+
+onMounted(() => {
+  if (selectedTopic.value) {
+    updateTotalHours()
+  }
+})
+
+watch(selectedTopic, (newVal, oldVal) => {
+  if (newVal && newVal.id !== oldVal?.id) {
+    updateTotalHours()
+  }
+})
+
 const chartpieData = ref({
   labels: [] as string[],
   datasets: [
