@@ -9,7 +9,7 @@
       </div>
 
       <!-- SAĞ ÜST: Topic Seçimi + Pie -->
-      <div class="w-full lg:w-80 flex flex-col items-center gap-6">
+      <div class="w-full lg:w-80 xl:w-96 flex flex-col items-center gap-6">
         <RcsSearchableDropdown
           v-model="selectedTopic"
           :items="dropdownItems"
