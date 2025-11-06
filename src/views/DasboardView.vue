@@ -1,38 +1,62 @@
 <template>
-  <main class="max-h-screen p-2 pt-20 grid gap-4 grid-cols-1 md:grid-cols-[5fr_2fr] md:grid-rows-2">
-    <section class="p-2 flex flex-col items-center md:order-2">
-      <RcsSearchableDropdown
-        v-model="selectedTopic"
-        :items="dropdownItems"
-        placeholder="Select topic..."
-        @create="TopicCreate"
-      />
+  <main class="min-h-screen pt-20 px-4 flex flex-col gap-10">
+    <!-- ÜST BÖLGE: SOL Chart - SAĞ Dropdown + Pie -->
+    <section class="flex flex-col lg:flex-row gap-10">
+      <!-- SOL ÜST: Chart -->
+      <div class="flex-1 p-4 rounded-2xl">
+        <RcsDropdown v-model="selectedWeeklyOption" :items="weeklyDropdownItems" class="mb-4" />
+        <RcsChartLine :chartData="chartData" class="h-64 md:h-96" />
+      </div>
+
+      <!-- SAĞ ÜST: Topic Seçimi + Pie -->
+      <div class="w-full lg:w-80 flex flex-col items-center gap-6">
+        <RcsSearchableDropdown
+          v-model="selectedTopic"
+          :items="dropdownItems"
+          placeholder="Select topic..."
+          @create="TopicCreate"
+          class="w-full"
+        />
+      </div>
     </section>
-    <section class="-2xl p-4 flex flex-col justify-between md:order-1">
-      <RcsDropdown v-model="selectedWeeklyOption" :items="weeklyDropdownItems" class="pl-6 mb-4" />
-      <RcsChartLine :chartData="chartData" class="px-6 h-60 md:h-120" />
-    </section>
 
-    <section class="p-4 flex flex-col items-center md:pt-10 md:order-4">
-      <RcsChartPie :chartData="chartpieData" />
-    </section>
+    <!-- ALT BÖLGE: SOL Cards - SAĞ Pie (Sabit Kalsın) -->
+    <section class="flex flex-col lg:flex-row gap-10">
+      <div class="w-full lg:w-100 lg:pt-8 xl:pt-15 lg:order-2">
+        <RcsChartPie :chartData="chartpieData" class="" />
+      </div>
+      <!-- SOL ALT: Kartlar -->
+      <div class="flex-1 flex flex-col gap-12 lg:order-1">
+        <!-- This Topic Cards -->
+        <div>
+          <h2 class="text-xl font-semibold mb-4">This Topic</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+            <RcsCard
+              title="Experience Level"
+              :value="currentStats?.levelName!"
+              subtitle="This Topic"
+            />
+            <RcsCard
+              title="Total Focus (This Topic)"
+              :value="MsToHour(currentStats?.totalMs!)"
+              subtitle="Hours"
+            />
+            <RcsCard title="Avg. Daily Focus" value="0" subtitle="Hours" />
+            <RcsCard title="Today’s Focus" value="0" subtitle="Hours" />
+          </div>
+        </div>
 
-    <section class="p-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 md:order-3">
-      <RcsCard title="Experience Level" :value="currentStats?.levelName!" subtitle="This Topic" />
-      <RcsCard
-        title="Total Focus (This Topic)"
-        :value="MsToHour(currentStats?.totalMs!)"
-        subtitle="Hours"
-      />
-      <RcsCard title="Avg. Daily Focus" value=" 0" subtitle="Hours" />
-      <RcsCard title="Today’s Focus" value="0" subtitle="Hours" />
-
-      <!-- SPACER -->
-
-      <RcsCard title="Focus Streak" value="0" subtitle="Days" />
-      <RcsCard title="Peak Focus Hour" value="0" subtitle="Local Time" />
-      <RcsCard title="Total Focus (All Topics)" value="0" subtitle="Hours" />
-      <RcsCard title="Avg. Daily Focus" value="0" subtitle="Hours" />
+        <!-- All Topics Cards -->
+        <div>
+          <h2 class="text-xl font-semibold mb-4">All Topics</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            <RcsCard title="Focus Streak" value="0" subtitle="Days" />
+            <RcsCard title="Peak Focus Hour" value="0" subtitle="Local Time" />
+            <RcsCard title="Total Focus (All Topics)" value="0" subtitle="Hours" />
+            <RcsCard title="Avg. Daily Focus" value="0" subtitle="Hours" />
+          </div>
+        </div>
+      </div>
     </section>
   </main>
 </template>
