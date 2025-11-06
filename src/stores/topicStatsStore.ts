@@ -7,6 +7,7 @@ interface TopicStat {
   sessionCount: number
   levelName: string
   levelIndex: number
+  lastSessionAt: Date | null
 }
 
 export const useTopicStatsStore = defineStore('topicStats', {
@@ -14,7 +15,6 @@ export const useTopicStatsStore = defineStore('topicStats', {
     stats: [] as TopicStat[],
   }),
   actions: {
-    // Yeni veya var olan topic'i güncelle
     setStats(
       topicId: string,
       topicName: string,
@@ -22,6 +22,7 @@ export const useTopicStatsStore = defineStore('topicStats', {
       newCount: number,
       newLevel: string,
       newIndex: number,
+      lastSessionAt?: Date | null,
     ) {
       const existing = this.stats.find((t) => t.id === topicId)
       if (existing) {
@@ -29,6 +30,7 @@ export const useTopicStatsStore = defineStore('topicStats', {
         existing.sessionCount = newCount
         existing.levelName = newLevel
         existing.levelIndex = newIndex
+        existing.lastSessionAt = lastSessionAt ?? existing.lastSessionAt
       } else {
         this.stats.push({
           id: topicId,
@@ -37,16 +39,15 @@ export const useTopicStatsStore = defineStore('topicStats', {
           sessionCount: newCount,
           levelName: newLevel,
           levelIndex: newIndex,
+          lastSessionAt: lastSessionAt ?? null,
         })
       }
     },
 
-    // Belirli topic'in istatistiklerini getir
     getStats(topicId: string) {
       return this.stats.find((t) => t.id === topicId)
     },
 
-    // Tümünü temizle
     clearAll() {
       this.stats = []
     },

@@ -41,8 +41,12 @@
               :value="MsToHour(currentStats?.totalMs!)"
               subtitle="Hours"
             />
-            <RcsCard title="Avg. Daily Focus" value="0" subtitle="Hours" />
-            <RcsCard title="Today’s Focus" value="0" subtitle="Hours" />
+            <RcsCard title="Session Count" :value="currentStats?.sessionCount!" subtitle="Total" />
+            <RcsCard
+              title="Last Session"
+              :value="formatLastSession(currentStats?.lastSessionAt)"
+              subtitle="Day"
+            />
           </div>
         </div>
 
@@ -97,6 +101,27 @@ const dropdownItems = computed(() =>
     label: t.topic,
   })),
 )
+
+function formatLastSession(lastSessionAt?: Date | null): string {
+  if (!lastSessionAt) return 'No data'
+
+  const now = new Date()
+  // Her iki tarihi de gün başlangıcına (00:00) sabitle
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const last = new Date(
+    lastSessionAt.getFullYear(),
+    lastSessionAt.getMonth(),
+    lastSessionAt.getDate(),
+  )
+
+  const diffMs = today.getTime() - last.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+  if (diffDays < 0) return 'In the future 🤔'
+  if (diffDays === 0) return 'Today'
+  if (diffDays === 1) return 'Yesterday'
+  return `${diffDays} days ago`
+}
 
 const currentStats = computed(() => {
   if (!selectedTopic.value) return null

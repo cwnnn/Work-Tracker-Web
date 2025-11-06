@@ -21,12 +21,23 @@ export async function getAllTopicsWithTotalHours(userId: string) {
       const sessionCount = data.sessionCount || 0
       const levelName = data.level || 'Beginner'
       const levelIndex = data.levelIndex || 0
+      const lastSessionAt = data.lastSessionAt
+        ? (data.lastSessionAt.toDate?.() ?? data.lastSessionAt)
+        : null
 
       // Toplam süreleri hesapla
       topicMap[topicName] = (topicMap[topicName] || 0) + totalMs
 
       // Her topic'i store'a kaydet
-      topicStatsStore.setStats(topicId, topicName, totalMs, sessionCount, levelName, levelIndex)
+      topicStatsStore.setStats(
+        topicId,
+        topicName,
+        totalMs,
+        sessionCount,
+        levelName,
+        levelIndex,
+        lastSessionAt,
+      )
     })
 
     // Chart.js formatında veri hazırla
