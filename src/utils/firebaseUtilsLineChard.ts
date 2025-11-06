@@ -17,7 +17,7 @@ export async function getTodaySessionsByTopic(userId: string, topicId: string) {
     const sessionsRef = collection(db, 'users', userId, 'sessions')
     const q = query(
       sessionsRef,
-      where('id', '==', topicId),
+      where('topicId', '==', topicId),
       where('date', '>=', Timestamp.fromDate(start)),
       where('date', '<=', Timestamp.fromDate(end)),
     )
@@ -31,6 +31,7 @@ export async function getTodaySessionsByTopic(userId: string, topicId: string) {
         duration: data.durationValue,
       }
     })
+    console.log(' snapshot ', sessions)
 
     for (const session of sessions) {
       const endTime = session.date
@@ -50,6 +51,7 @@ export async function getTodaySessionsByTopic(userId: string, topicId: string) {
       }
     }
 
+    console.log('hours', hours)
     return hours
   } catch (err) {
     console.error('[getTodaySessionsByTopic] Hata:', err)
@@ -78,7 +80,7 @@ export async function getWeeklySessionsByTopic(userId: string, topicId: string) 
     const sessionsRef = collection(db, 'users', userId, 'sessions')
     const q = query(
       sessionsRef,
-      where('id', '==', topicId),
+      where('topicId', '==', topicId),
       where('date', '>=', Timestamp.fromDate(start)),
       where('date', '<=', Timestamp.fromDate(end)),
     )
@@ -139,7 +141,7 @@ export async function getMonthlySessionsByTopic(userId: string, topicId: string)
     const sessionsRef = collection(db, 'users', userId, 'sessions')
     const q = query(
       sessionsRef,
-      where('id', '==', topicId),
+      where('topicId', '==', topicId),
       where('date', '>=', Timestamp.fromDate(start)),
       where('date', '<=', Timestamp.fromDate(end)),
     )
@@ -195,7 +197,7 @@ export async function getYearlySessionsByTopic(userId: string, topicId: string) 
     const sessionsRef = collection(db, 'users', userId, 'sessions')
     const q = query(
       sessionsRef,
-      where('id', '==', topicId),
+      where('topicId', '==', topicId),
       where('date', '>=', Timestamp.fromDate(start)),
       where('date', '<=', Timestamp.fromDate(end)),
     )
