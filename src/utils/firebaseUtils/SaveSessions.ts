@@ -3,6 +3,7 @@ import {
   addDoc,
   collection,
   doc,
+  increment,
   runTransaction,
   serverTimestamp,
   setDoc,
@@ -131,6 +132,18 @@ async function updateTopicStats(userId: string, topicId: string, duration: numbe
   console.log(`Topic "${topicId}" transaction ile güncellendi.`)
 }
 
+async function updateAllTopicsTotalFocus(userId: string, deltaMs: number) {
+  const statsRef = doc(db, 'users', userId, 'stats', 'allTopics')
+  await setDoc(
+    statsRef,
+    {
+      totalFocusMs: increment(deltaMs),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }, // belge yoksa oluşturur, varsa artırır
+  )
+}
+
 //Ana fonksiyon
 export async function saveSession(
   userId: string,
@@ -143,6 +156,7 @@ export async function saveSession(
     if (duration <= 0) return
     await addSessionRecord(userId, topicId, duration)
     await updateTopicStats(userId, topicId, duration)
+    await updateAllTopicsTotalFocus(userId, duration)
   } catch (error) {
     console.error('saveSession hatası:', error)
     await saveGlobalErrorLog(
