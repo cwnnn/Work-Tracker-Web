@@ -61,7 +61,7 @@ export async function updateFocusStreak(userId: string) {
 
     // Eğer focusStreakAt yoksa (ilk defa)
     if (!streakAtStr) {
-      focusStreak = getFocusStreak(userId)
+      focusStreak = await getFocusStreak(userId)
       await updateDoc(statsRef, {
         focusStreak,
         focusStreakAt: new Date(),
