@@ -1,4 +1,15 @@
-import { collection, getDocs, doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
+import {
+  collection,
+  getDocs,
+  doc,
+  getDoc,
+  updateDoc,
+  serverTimestamp,
+  setDoc,
+  Timestamp,
+  where,
+  query,
+} from 'firebase/firestore'
 import { db } from '@/firebase'
 
 export async function getFocusStreak(userId: string) {
@@ -52,12 +63,12 @@ export async function updateFocusStreak(userId: string) {
     let focusStreak = data.focusStreak || 0
 
     const today = new Date()
-    const todayStr = today.toISOString().slice(0, 10)
+    const toLocalDateStr = (d: Date | null) =>
+      d ? new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10) : null
 
-    const getDayStr = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : null)
-
-    const streakAtStr = getDayStr(focusStreakAt)
-    const updatedAtStr = getDayStr(updatedAt)
+    const streakAtStr = toLocalDateStr(focusStreakAt)
+    const updatedAtStr = toLocalDateStr(updatedAt)
+    const todayStr = toLocalDateStr(new Date())
 
     // Eğer focusStreakAt yoksa (ilk defa)
     if (!streakAtStr) {
@@ -75,6 +86,16 @@ export async function updateFocusStreak(userId: string) {
     const diffDays = Math.floor(
       (today.setHours(0, 0, 0, 0) - new Date(focusStreakAt).setHours(0, 0, 0, 0)) /
         (1000 * 60 * 60 * 24),
+    )
+    console.log(
+      'diffDays',
+      diffDays,
+      'updatedAtStr',
+      updatedAtStr,
+      'streakAtStr',
+      streakAtStr,
+      'todayStr',
+      todayStr,
     )
 
     // ---- Kurallar ----
@@ -125,5 +146,137 @@ export async function updateFocusStreak(userId: string) {
     }
   } catch (err) {
     console.error('updateFocusStreak hata:', err)
+  }
+}
+
+export async function getPeakFocusSession(userId: string) {
+  const sessionsRef = collection(db, 'users', userId, 'sessions')
+  const snapshot = await getDocs(sessionsRef)
+
+  let maxDuration = 0
+
+  snapshot.forEach((doc) => {
+    const data = doc.data()
+    const duration = data.durationValue || 0
+    if (duration > maxDuration) {
+      maxDuration = duration
+    }
+  })
+  console.log('maxDuration', maxDuration)
+  return maxDuration
+}
+
+export async function updatePeakFocusSession(userId: string, newDuration: number) {
+  try {
+    const statsRef = doc(db, 'users', userId, 'stats', 'allTopics')
+    const statsSnap = await getDoc(statsRef)
+    if (!statsSnap.exists()) {
+      console.warn('allTopics dokümanı bulunamadı.')
+      return null
+    }
+
+    const data = statsSnap.data()
+    let currentPeak
+
+    if (!data.peakFocusSession) {
+      //peakFocusSession değeri yoksa oluştur
+      currentPeak = await getPeakFocusSession(userId)
+      if (newDuration > currentPeak) {
+        await updateDoc(statsRef, { peakFocusSession: newDuration })
+      } else {
+        await setDoc(statsRef, { peakFocusSession: currentPeak }, { merge: true })
+      }
+
+      console.log('Yeni peakFocusSession oluşturuldu:', newDuration)
+      return
+    }
+
+    currentPeak = data?.peakFocusSession || 0
+
+    //Gelen değer daha büyükse güncelle
+    if (newDuration > currentPeak) {
+      await updateDoc(statsRef, { peakFocusSession: newDuration })
+      console.log('PeakFocusSession güncellendi:', newDuration)
+    } else {
+      console.log('Yeni değer daha küçük, güncelleme yapılmadı.')
+    }
+  } catch (err) {
+    console.error('updatePeakFocusSession hata:', err)
+  }
+}
+
+async function getSessionsStatsByDateRange(userId: string, days: number) {
+  const sessionsRef = collection(db, 'users', userId, 'sessions')
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const start = new Date(today)
+  start.setDate(today.getDate() - (days - 1))
+
+  const q = query(sessionsRef, where('date', '>=', Timestamp.fromDate(start)))
+  const snap = await getDocs(q)
+
+  let totalMs = 0
+  const dayKeys = new Set<string>()
+
+  snap.forEach((d) => {
+    const data = d.data() as { durationValue?: number; date?: Timestamp }
+    const dur = data.durationValue ?? 0
+    totalMs += dur
+
+    const dt = data.date?.toDate?.()
+    if (dt) {
+      const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
+      dayKeys.add(key)
+    }
+  })
+  console.log('total7günMS :', totalMs)
+  return { totalMs, daysWithData: dayKeys.size }
+}
+
+export async function updateAvgDailyFocus(userId: string) {
+  try {
+    const statsRef = doc(db, 'users', userId, 'stats', 'allTopics')
+    const statsSnap = await getDoc(statsRef)
+    if (!statsSnap.exists()) return
+
+    const data = statsSnap.data()
+    const lastUpdated = data.avgDailyFocusLastUpdated?.toDate?.() ?? null
+
+    // Bugün içinde zaten güncellendiyse çık
+    const now = new Date()
+    const isSameDay =
+      lastUpdated &&
+      lastUpdated.getFullYear() === now.getFullYear() &&
+      lastUpdated.getMonth() === now.getMonth() &&
+      lastUpdated.getDate() === now.getDate()
+
+    if (isSameDay) {
+      console.log('[updateAvgDailyFocus] Bugün zaten güncellendi.')
+      return
+    }
+
+    const { totalMs, daysWithData } = await getSessionsStatsByDateRange(userId, 7)
+
+    if (daysWithData === 0) {
+      await updateDoc(statsRef, {
+        avgDailyFocusMs: 0,
+        avgDailyFocusLastUpdated: serverTimestamp(),
+      })
+      console.log('[updateAvgDailyFocus] Güncellendi: 0 (veri yok)')
+      return 0
+    }
+
+    const avgDailyFocusMs = totalMs / daysWithData
+
+    await updateDoc(statsRef, {
+      avgDailyFocusMs,
+      avgDailyFocusLastUpdated: serverTimestamp(),
+    })
+
+    console.log('[updateAvgDailyFocus] Güncellendi:', avgDailyFocusMs)
+    return avgDailyFocusMs
+  } catch (err) {
+    console.error('[updateAvgDailyFocus] Hata:', err)
   }
 }

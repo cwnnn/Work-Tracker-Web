@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore'
 import { saveGlobalErrorLog } from './firebaseUtils'
 import { unmask } from '../maskUtils'
+import { updatePeakFocusSession } from '../firebaseUtilsCard/firebaseUtilsCard'
 
 const HOUR = 60 * 60 * 1000
 
@@ -157,6 +158,7 @@ export async function saveSession(
     await addSessionRecord(userId, topicId, duration)
     await updateTopicStats(userId, topicId, duration)
     await updateAllTopicsTotalFocus(userId, duration)
+    await updatePeakFocusSession(userId, duration)
   } catch (error) {
     console.error('saveSession hatası:', error)
     await saveGlobalErrorLog(
