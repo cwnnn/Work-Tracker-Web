@@ -1,4 +1,3 @@
-// src/utils/saveSession.ts
 import { db } from '../../firebase'
 import {
   collection,
@@ -10,6 +9,7 @@ import {
   query,
   orderBy,
 } from 'firebase/firestore'
+import { useAllTopicStatsStore } from '../../stores/AllTopicStatsStore'
 
 // Hata kayıt fonksiyonu
 export async function saveGlobalErrorLog(
@@ -84,6 +84,39 @@ export const getSeed = async (): Promise<Seed | null> => {
   } catch (err) {
     console.error('Seed’i çekerken hata:', err)
     await saveGlobalErrorLog((err as Error).message, 'getSeed', undefined, (err as Error).stack)
+    return null
+  }
+}
+//stats>allTopics verilerini store a kayıt eder
+export async function getStatsAllTopics(userId: string) {
+  const AllTopicStatsStore = useAllTopicStatsStore()
+
+  try {
+    if (!userId) {
+      console.error('[getStatsAllTopics] userId eksik.')
+      return null
+    }
+
+    const statsRef = doc(db, 'users', userId, 'stats', 'allTopics')
+    const statsSnap = await getDoc(statsRef)
+
+    if (!statsSnap.exists()) {
+      console.warn('[getStatsAllTopics] allTopics belgesi bulunamadı.')
+      return null
+    }
+
+    const data = statsSnap.data()
+    AllTopicStatsStore.setStats(data)
+
+    return console.log('alltopicsstate:', data)
+  } catch (err) {
+    console.error('[getStatsAllTopics] Hata:', err)
+    await saveGlobalErrorLog(
+      (err as Error).message,
+      'getStatsAllTopics',
+      userId,
+      (err as Error).stack,
+    )
     return null
   }
 }
