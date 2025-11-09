@@ -9,7 +9,7 @@ import {
   setDoc,
   Timestamp,
 } from 'firebase/firestore'
-import { saveGlobalErrorLog } from '../firebaseUtils'
+import { saveGlobalErrorLog } from './firebaseUtils'
 import { unmask } from '../maskUtils'
 
 const HOUR = 60 * 60 * 1000

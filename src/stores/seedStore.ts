@@ -1,7 +1,7 @@
 // src/stores/seedStore.ts
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { getSeed } from '@/utils/firebaseUtils' // az önce yazdığın fonksiyon
+import { getSeed } from '@/utils/firebaseUtils/firebaseUtils' // az önce yazdığın fonksiyon
 
 export const useSeedStore = defineStore('seed', () => {
   const seed = ref<string | null>(null)

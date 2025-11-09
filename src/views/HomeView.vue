@@ -11,7 +11,7 @@ import { useUserStore } from '../stores/userStore'
 import { useTopicStore } from '../stores/topicStore'
 import { useSeedStore } from '../stores/seedStore'
 //utils
-import { saveGlobalErrorLog } from '../utils/firebaseUtils'
+import { saveGlobalErrorLog } from '../utils/firebaseUtils/firebaseUtils'
 import { createTopic, saveSession } from '../utils/firebaseUtils/SaveSessions'
 import { mask, unmask } from '../utils/maskUtils'
 import { toTitleCase } from '../utils/TitleCorrUtils'
@@ -234,7 +234,7 @@ async function handlePress(pressed: boolean) {
         return
       }
 
-      if (time > 60 * 1000) {
+      if (time > 1000) {
         try {
           await saveSession(userStore.userId, selectedTopic.value.id, masked, seed)
           localStorage.removeItem(LOCAL_KEY.value)

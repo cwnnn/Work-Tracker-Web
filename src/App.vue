@@ -7,7 +7,7 @@ import { auth, signInAnonymously } from './firebase'
 import { useUserStore } from './stores/userStore'
 import { useTopicStore } from '@/stores/topicStore'
 import { useSeedStore } from '@/stores/seedStore'
-import { getUserTopics } from '@/utils/firebaseUtils'
+import { getUserTopics } from '@/utils/firebaseUtils/firebaseUtils'
 
 const userStore = useUserStore()
 const topicStore = useTopicStore()

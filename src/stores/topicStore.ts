@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { UserTopic } from '../utils/firebaseUtils'
+import type { UserTopic } from '../utils/firebaseUtils/firebaseUtils'
 
 export const useTopicStore = defineStore('topic', () => {
   const topics = ref<UserTopic[]>([])
