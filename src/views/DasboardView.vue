@@ -55,9 +55,21 @@
           <h2 class="text-xl font-semibold mb-4">All Topics</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
             <RcsCard title="Focus Streak" :value="streak ?? '-'" subtitle="Days" />
-            <RcsCard title="Peak Focus Hour" value="0" subtitle="Local Time" />
-            <RcsCard title="Total Focus (All Topics)" value="0" subtitle="Hours" />
-            <RcsCard title="Avg. Daily Focus" value="0" subtitle="Hours" />
+            <RcsCard
+              title="Peak Focus Session"
+              :value="MsToHour(currentAlStats.peakFocusSession!)"
+              subtitle="Local Time"
+            />
+            <RcsCard
+              title="Total Focus (All Topics)"
+              :value="MsToHour(currentAlStats.totalFocusMs!)"
+              subtitle="Hours"
+            />
+            <RcsCard
+              title="Avg. Daily Focus"
+              :value="MsToHour(currentAlStats.avgDailyFocusMs!)"
+              subtitle="Hours"
+            />
           </div>
         </div>
       </div>
@@ -77,15 +89,23 @@ import RcsCard from '../components/RcsCard/RcsCard.vue'
 import { useTopicStore } from '@/stores/topicStore'
 import { useUserStore } from '@/stores/userStore'
 import { useTopicStatsStore } from '@/stores/topicStatsStore'
+import { useAllTopicStatsStore } from '@/stores/AllTopicStatsStore'
 
-import { saveGlobalErrorLog } from '@/utils/firebaseUtils/firebaseUtils'
+import { saveGlobalErrorLog, getStatsAllTopics } from '@/utils/firebaseUtils/firebaseUtils'
 import { createTopic } from '../utils/firebaseUtils/SaveSessions'
 import { getAllTopicsWithTotalHours } from '@/utils/firebaseUtilsPieChard'
 import { toTitleCase } from '@/utils/TitleCorrUtils'
-import { updateFocusStreak } from '../utils/firebaseUtilsCard/firebaseUtilsCard'
+import {
+  updateAvgDailyFocus,
+  updateFocusStreak,
+} from '../utils/firebaseUtilsCard/firebaseUtilsCard'
 const streak = ref<string | null>(null)
 
+const allStats = useAllTopicStatsStore()
+
 onMounted(async () => {
+  updateAvgDailyFocus(userStore.userId!)
+  getStatsAllTopics(userStore.userId!)
   const result = await updateFocusStreak(userStore.userId!)
   if (!result.streak) return (streak.value = result)
   streak.value = result.streak + ' az kladı'
@@ -135,6 +155,9 @@ function formatLastSession(lastSessionAt?: Date | null): string {
 const currentStats = computed(() => {
   if (!selectedTopic.value) return null
   return topicStatsStore.getStats(selectedTopic.value.id)
+})
+const currentAlStats = computed(() => {
+  return allStats.getStats()
 })
 function MsToHour(totalMs: number) {
   const totalMinutes = Math.floor(totalMs / 60000)
