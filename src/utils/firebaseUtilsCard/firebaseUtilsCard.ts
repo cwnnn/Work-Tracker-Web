@@ -12,7 +12,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/firebase'
 
-export async function getFocusStreak(userId: string) {
+async function getFocusStreak(userId: string) {
   const sessionsRef = collection(db, 'users', userId, 'sessions')
   const snapshot = await getDocs(sessionsRef)
 
@@ -149,7 +149,7 @@ export async function updateFocusStreak(userId: string) {
   }
 }
 
-export async function getPeakFocusSession(userId: string) {
+async function getPeakFocusSession(userId: string) {
   const sessionsRef = collection(db, 'users', userId, 'sessions')
   const snapshot = await getDocs(sessionsRef)
 
