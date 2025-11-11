@@ -12,6 +12,12 @@ import {
 import { saveGlobalErrorLog } from './firebaseUtils'
 import { unmask } from '../maskUtils'
 import { updatePeakFocusSession } from '../firebaseUtilsCard/firebaseUtilsCard'
+import {
+  updateDailyStatsLite,
+  updateWeeklyStatsLite,
+  updateMonthlyStatsLite,
+  updateYearlyStatsLite,
+} from './AggregationUtils'
 
 const HOUR = 60 * 60 * 1000
 
@@ -153,14 +159,35 @@ export async function saveSession(
   seed: string,
 ) {
   try {
-    const duration = await decodeDuration(maskedDuration, seed, userId)
-    if (duration <= 0) return
-    await addSessionRecord(userId, topicId, duration)
-    await updateTopicStats(userId, topicId, duration)
-    await updateAllTopicsTotalFocus(userId, duration)
-    await updatePeakFocusSession(userId, duration)
+    const durationMs = await decodeDuration(maskedDuration, seed, userId)
+    if (durationMs <= 0) return
+
+    const endDate = new Date()
+
+    // 1️⃣ Session kaydı oluştur
+    await addSessionRecord(userId, topicId, durationMs)
+
+    // 2️⃣ Konu istatistiklerini güncelle
+    await updateTopicStats(userId, topicId, durationMs)
+
+    // 3️⃣ Tüm konuların toplam odak süresi (allTopics)
+    await updateAllTopicsTotalFocus(userId, durationMs)
+
+    // 4️⃣ En yüksek oturum süresi (peak)
+    await updatePeakFocusSession(userId, durationMs)
+
+    // 5️⃣ Daily, Weekly, Monthly, Yearly istatistikleri paralel güncelle
+    await Promise.all([
+      updateDailyStatsLite(userId, topicId, durationMs, endDate),
+      updateWeeklyStatsLite(userId, topicId, durationMs, endDate),
+      updateMonthlyStatsLite(userId, topicId, durationMs, endDate),
+      updateYearlyStatsLite(userId, topicId, durationMs, endDate),
+    ])
+
+    console.log('✅ saveSession başarıyla tamamlandı')
   } catch (error) {
-    console.error('saveSession hatası:', error)
+    console.error('❌ saveSession hatası:', error)
+
     await saveGlobalErrorLog(
       (error as Error).message,
       'saveSession',

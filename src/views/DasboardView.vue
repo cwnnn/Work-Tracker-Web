@@ -113,11 +113,11 @@ onMounted(async () => {
 })
 
 import {
-  getMonthlySessionsByTopic,
-  getTodaySessionsByTopic,
-  getWeeklySessionsByTopic,
-  getYearlySessionsByTopic,
-} from '@/utils/firebaseUtilsLineChard'
+  getDailyStats,
+  getMonthlyStats,
+  getWeeklyStats,
+  getYearlyStats,
+} from '@/utils/firebaseUtils/AggregationUtils'
 
 const topicStore = useTopicStore()
 const userStore = useUserStore()
@@ -196,23 +196,32 @@ async function updateChart() {
   if (!userId || !topicId) return console.warn('Kullanıcı veya topic eksik.')
 
   if (selectedWeeklyOption.value === 'daily') {
-    const hours = await getTodaySessionsByTopic(userId, topicId)
-    chartData.value.labels = hours.map((h) => `${h.id}:00`)
-    chartData.value.datasets[0]!.data = hours.map((h) => h.value)
-    chartData.value.datasets[0]!.label = 'Minutes'
+    // 🔹 Günlük veriyi çek
+    const daily = await getDailyStats(userId, topicId)
+    console.log('daily', daily)
+
+    chartData.value.labels = (daily.labels ?? []).map((l) => `${l}:00`) // örn: "00:00", "01:00"
+    chartData.value.datasets[0]!.data = daily.data
+    chartData.value.datasets[0]!.label = 'minutes'
   } else if (selectedWeeklyOption.value === 'weekly') {
-    const weekly = await getWeeklySessionsByTopic(userId, topicId)
+    const weekly = await getWeeklyStats(userId, topicId)
+    console.log('weekly', weekly)
+
     chartData.value.labels = (weekly.labels ?? []).map((l) => l ?? '')
     chartData.value.datasets[0]!.data = weekly.data
     chartData.value.datasets[0]!.label = 'Hours'
   } else if (selectedWeeklyOption.value === 'monthly') {
-    const monthly = await getMonthlySessionsByTopic(userId, topicId)
-    chartData.value.labels = (monthly.labels ?? []).map((l) => l ?? '')
+    const monthly = await getMonthlyStats(userId, topicId)
+    console.log('monthly', monthly)
+
+    chartData.value.labels = monthly.labels
     chartData.value.datasets[0]!.data = monthly.data
     chartData.value.datasets[0]!.label = 'Hours'
   } else if (selectedWeeklyOption.value === 'yearly') {
-    const yearly = await getYearlySessionsByTopic(userId, topicId)
-    chartData.value.labels = (yearly.labels ?? []).map((l) => l ?? '')
+    const yearly = await getYearlyStats(userId, topicId)
+    console.log('yearly', yearly)
+
+    chartData.value.labels = yearly.labels
     chartData.value.datasets[0]!.data = yearly.data
     chartData.value.datasets[0]!.label = 'Hours'
   }
