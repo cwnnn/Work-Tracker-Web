@@ -35,6 +35,7 @@
               title="Experience Level"
               :value="currentStats?.levelName!"
               subtitle="This Topic"
+              :info="infoExpLvl"
             />
             <RcsCard
               title="Total Focus (This Topic)"
@@ -54,7 +55,12 @@
         <div>
           <h2 class="text-xl font-semibold mb-4">All Topics</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-            <RcsCard title="Focus Streak" :value="streak ?? '-'" subtitle="Days" />
+            <RcsCard
+              title="Focus Streak"
+              :value="streak ?? '-'"
+              subtitle="Days"
+              :alarm="streakAlarm"
+            />
             <RcsCard
               title="Peak Focus Session"
               :value="MsToHour(currentAlStats.peakFocusSession!)"
@@ -100,15 +106,35 @@ import {
   updateFocusStreak,
 } from '../utils/firebaseUtilsCard/firebaseUtilsCard'
 const streak = ref<string | null>(null)
+let streakAlarm = false
 
 const allStats = useAllTopicStatsStore()
+const infoExpLvl = `
+🏆 **Experience Levels**
+
+• Beginner – 0 hours
+• Novice – 10 hours
+• Learner – 30 hours
+• Intermediate – 70 hours
+• Skilled – 120 hours
+• Advanced – 200 hours
+• Proficient – 350 hours
+• Expert – 500 hours
+• Master – 700 hours
+• Grandmaster – 900 hours
+• Mythic – 1200 hours
+• Transcendent – 2000 hours
+• Celestial – 5000 hours
+• Omniscient – 10000 hours
+`
 
 onMounted(async () => {
   updateAvgDailyFocus(userStore.userId!)
   getStatsAllTopics(userStore.userId!)
   const result = await updateFocusStreak(userStore.userId!)
   if (!result.streak) return (streak.value = result)
-  streak.value = result.streak + ' az kladı'
+  streak.value = result.streak
+  streakAlarm = result.alarm
   console.log('result', result, 'streak.value', streak.value, 'updated:', result.error)
 })
 

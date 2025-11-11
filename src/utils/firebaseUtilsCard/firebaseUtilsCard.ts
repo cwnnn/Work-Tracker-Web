@@ -124,7 +124,7 @@ export async function updateFocusStreak(userId: string) {
     // 3) Dünse ve updatedAt dünse -> hiçbir şey yapma
     if (diffDays === 1 && updatedAtStr === streakAtStr) {
       console.log('Dün güncellendi, bekleniyor...')
-      return { streak: focusStreak, error: true }
+      return { streak: focusStreak, alarm: true }
     }
 
     // 4) Dünse ve updatedAt bugünse -> artır

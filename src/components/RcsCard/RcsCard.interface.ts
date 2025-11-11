@@ -5,4 +5,6 @@ export interface RcsStatCardProps extends BaseProps {
   value: string | number
   subtitle?: string
   size?: 'sm' | 'md' | 'lg'
+  alarm?: boolean
+  info?: string
 }
