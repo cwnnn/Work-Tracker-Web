@@ -15,6 +15,7 @@ import { saveGlobalErrorLog } from '../utils/firebaseUtils/firebaseUtils'
 import { createTopic, saveSession } from '../utils/firebaseUtils/SaveSessions'
 import { mask, unmask } from '../utils/maskUtils'
 import { toTitleCase } from '../utils/TitleCorrUtils'
+import { releaseWakeLock, requestWakeLock } from '@/utils/wakeLock'
 
 // store'ları başlat
 const userStore = useUserStore()
@@ -197,10 +198,12 @@ onUnmounted(() => {
 async function handlePress(pressed: boolean) {
   toggleTracking(pressed)
   if (pressed) {
+    requestWakeLock()
     startTimer()
     startStopLabel.value = 'Stop'
     buttonPressed.value = true
   } else {
+    releaseWakeLock()
     stopTimer()
     startStopLabel.value = 'Start'
     buttonPressed.value = false
