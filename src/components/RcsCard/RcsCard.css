@@ -106,3 +106,7 @@
 .card-value.alarm-blink {
   @apply animate-[blink-red_2s_infinite_ease-in-out];
 }
+
+.card-premium {
+  @apply text-yellow-500;
+}

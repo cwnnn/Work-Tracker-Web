@@ -15,6 +15,7 @@
           class="dropdown-input"
         />
       </div>
+
       <ul class="dropdown-list">
         <li
           v-for="item in filteredItems"
@@ -26,18 +27,19 @@
           {{ item.label }}
         </li>
 
-        <!-- Dışarıdan yönetilecek "create" eventi -->
         <li
-          v-if="
-            query.trim() &&
-            !props.items.some(
-              (item) => item.label.toLowerCase().trim() === query.trim().toLowerCase(),
-            )
-          "
+          v-if="query.trim() && props.items.length < 3"
           @click="emitCreate"
           class="dropdown-create"
         >
           + Create "{{ query.trim() }}"
+        </li>
+
+        <li
+          v-else-if="query.trim() && props.items.length >= 3"
+          class="dropdown-limit text-yellow-500"
+        >
+          Beta limit: max 3 topics
         </li>
       </ul>
     </div>
@@ -60,7 +62,7 @@ const query = ref('')
 
 const filteredItems = computed(() => {
   const q = query.value.trim().toLowerCase()
-  if (!q) return props.items // boşsa hiçbir filtreleme yapma
+  if (!q) return props.items
   return props.items.filter((item) => item.label.toLowerCase().includes(q))
 })
 
@@ -74,7 +76,6 @@ function selectItem(item: DropdownItem) {
   query.value = ''
 }
 
-//Artık sadece dışarıya haber verir, kaydetme işlemi yok
 function emitCreate() {
   emit('create', query.value)
   isOpen.value = false

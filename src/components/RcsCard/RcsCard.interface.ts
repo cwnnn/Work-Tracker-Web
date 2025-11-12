@@ -7,4 +7,5 @@ export interface RcsStatCardProps extends BaseProps {
   size?: 'sm' | 'md' | 'lg'
   alarm?: boolean
   info?: string
+  premium?: boolean
 }

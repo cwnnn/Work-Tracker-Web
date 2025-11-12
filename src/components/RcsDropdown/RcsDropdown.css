@@ -39,3 +39,10 @@
       inset -2px -2px 4px rgba(255, 255, 255, 0.4);
   }
 }
+.dropdown-premium {
+  @apply text-yellow-500;
+}
+
+.dropdown-premium:hover {
+  @apply bg-yellow-500/50 text-white;
+}

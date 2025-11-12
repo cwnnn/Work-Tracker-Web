@@ -16,7 +16,23 @@
           placeholder="Select topic..."
           @create="TopicCreate"
           class="w-full"
+          :premium="false"
         />
+        <div class="flex gap-6">
+          <RcsSoftButton
+            size="lg"
+            class="h-10 w-30"
+            @click="handleDelete(selectedTopic?.id!)"
+            label="Edit"
+          />
+
+          <RcsSoftButton
+            size="lg"
+            class="!text-red-700 h-10 w-30"
+            @click="handleDelete(selectedTopic?.id!)"
+            label="Delete"
+          />
+        </div>
       </div>
     </section>
 
@@ -33,16 +49,20 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
             <RcsCard
               title="Experience Level"
-              :value="currentStats?.levelName!"
+              :value="currentStats?.levelName! ?? '-'"
               subtitle="This Topic"
               :info="infoExpLvl"
             />
             <RcsCard
               title="Total Focus (This Topic)"
-              :value="MsToHour(currentStats?.totalMs!)"
+              :value="MsToHour(currentStats?.totalMs!) ?? '-'"
               subtitle="Hours"
             />
-            <RcsCard title="Session Count" :value="currentStats?.sessionCount!" subtitle="Total" />
+            <RcsCard
+              title="Session Count"
+              :value="currentStats?.sessionCount! ?? '-'"
+              subtitle="Total"
+            />
             <RcsCard
               title="Last Session"
               :value="formatLastSession(currentStats?.lastSessionAt)"
@@ -53,7 +73,7 @@
 
         <!-- All Topics Cards -->
         <div>
-          <h2 class="text-xl font-semibold mb-4">All Topics</h2>
+          <h2 class="text-xl font-semibold mb-4 text-yellow-500">All Topics</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
             <RcsCard
               title="Focus Streak"
@@ -65,16 +85,19 @@
               title="Peak Focus Session"
               :value="MsToHour(currentAlStats.peakFocusSession!)"
               subtitle="Local Time"
+              premium
             />
             <RcsCard
               title="Total Focus (All Topics)"
               :value="MsToHour(currentAlStats.totalFocusMs!)"
               subtitle="Hours"
+              premium
             />
             <RcsCard
               title="Avg. Daily Focus"
               :value="MsToHour(currentAlStats.avgDailyFocusMs!)"
               subtitle="Hours"
+              premium
             />
           </div>
         </div>
@@ -144,6 +167,8 @@ import {
   getWeeklyStats,
   getYearlyStats,
 } from '@/utils/firebaseUtils/AggregationUtils'
+import RcsSoftButton from '@/components/RcsSoftButton/RcsSoftButton.vue'
+import { deleteTopic } from '@/utils/firebaseUtils/deleteTopicUtils'
 
 const topicStore = useTopicStore()
 const userStore = useUserStore()
@@ -158,7 +183,7 @@ const dropdownItems = computed(() =>
 )
 
 function formatLastSession(lastSessionAt?: Date | null): string {
-  if (!lastSessionAt) return 'No data'
+  if (!lastSessionAt) return '-'
 
   const now = new Date()
   // Her iki tarihi de gün başlangıcına (00:00) sabitle
@@ -186,6 +211,7 @@ const currentAlStats = computed(() => {
   return allStats.getStats()
 })
 function MsToHour(totalMs: number) {
+  if (totalMs == null) return 0
   const totalMinutes = Math.floor(totalMs / 60000)
   const hours = Math.floor(totalMinutes / 60)
   const minutes = totalMinutes % 60
@@ -199,7 +225,7 @@ const weeklyDropdownItems = [
   { label: 'Daily', value: 'daily' },
   { label: 'Weekly', value: 'weekly' },
   { label: 'Monthly', value: 'monthly' },
-  { label: 'Yearly', value: 'yearly' },
+  { label: 'Yearly', value: 'yearly', premium: true },
 ]
 
 const chartData = ref({
@@ -229,6 +255,7 @@ async function updateChart() {
     chartData.value.labels = (daily.labels ?? []).map((l) => `${l}:00`) // örn: "00:00", "01:00"
     chartData.value.datasets[0]!.data = daily.data
     chartData.value.datasets[0]!.label = 'minutes'
+    chartData.value.datasets[0]!.borderColor = 'MediumPurple'
   } else if (selectedWeeklyOption.value === 'weekly') {
     const weekly = await getWeeklyStats(userId, topicId)
     console.log('weekly', weekly)
@@ -236,6 +263,7 @@ async function updateChart() {
     chartData.value.labels = (weekly.labels ?? []).map((l) => l ?? '')
     chartData.value.datasets[0]!.data = weekly.data
     chartData.value.datasets[0]!.label = 'Hours'
+    chartData.value.datasets[0]!.borderColor = 'MediumPurple'
   } else if (selectedWeeklyOption.value === 'monthly') {
     const monthly = await getMonthlyStats(userId, topicId)
     console.log('monthly', monthly)
@@ -243,6 +271,7 @@ async function updateChart() {
     chartData.value.labels = monthly.labels
     chartData.value.datasets[0]!.data = monthly.data
     chartData.value.datasets[0]!.label = 'Hours'
+    chartData.value.datasets[0]!.borderColor = 'MediumPurple'
   } else if (selectedWeeklyOption.value === 'yearly') {
     const yearly = await getYearlyStats(userId, topicId)
     console.log('yearly', yearly)
@@ -250,6 +279,7 @@ async function updateChart() {
     chartData.value.labels = yearly.labels
     chartData.value.datasets[0]!.data = yearly.data
     chartData.value.datasets[0]!.label = 'Hours'
+    chartData.value.datasets[0]!.borderColor = '#eab308'
   }
 }
 
@@ -322,7 +352,6 @@ watch(
   { immediate: true },
 )
 
-//Yeni topic oluşturma fonksiyonu
 async function TopicCreate(label: string) {
   try {
     const userId = userStore.userId
@@ -331,14 +360,17 @@ async function TopicCreate(label: string) {
       return
     }
 
+    if (topicStore.topics.length >= 3) {
+      alert('Since we are in Beta, you can create up to 3 topics.\nPlease delete an existing one.')
+      return
+    }
+
     const topicName = toTitleCase(label)
     const topic = await createTopic(userId, topicName)
 
-    // store’a ekle
     const newTopic = { id: topic.topicId, topic: topicName }
     topicStore.addTopic(newTopic)
 
-    // seçili topic olarak ata
     selectedTopic.value = { id: newTopic.id, label: newTopic.topic }
 
     console.log(`Yeni topic oluşturuldu: ${topicName}`)
@@ -348,6 +380,18 @@ async function TopicCreate(label: string) {
     await saveGlobalErrorLog(e.message, 'TopicCreate', userStore.userId ?? undefined, e.stack, {
       label,
     })
+  }
+}
+async function handleDelete(topicId: string) {
+  if (!confirm('⚠️ Bu topic ve tüm verileri silinecek. Emin misiniz?')) return
+
+  const success = await deleteTopic(userStore.userId!, topicId)
+  if (success) {
+    topicStore.removeTopic(topicId)
+
+    if (selectedTopic.value?.id === topicId) {
+      selectedTopic.value = null
+    }
   }
 }
 </script>

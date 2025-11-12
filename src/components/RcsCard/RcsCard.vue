@@ -9,7 +9,9 @@
   >
     <!-- Header -->
     <div class="card-header">
-      <h3 class="card-title truncate">{{ props.title }}</h3>
+      <h3 :class="['card-title truncate', props.premium ? 'card-premium' : '']">
+        {{ props.title }}
+      </h3>
       <slot name="icon"></slot>
     </div>
 
