@@ -1,0 +1,58 @@
+@reference "tailwindcss/theme.css";
+
+.fade-enter-active,
+.fade-leave-active {
+  @apply transition-opacity duration-300 ease-in-out;
+}
+.fade-enter-from,
+.fade-leave-to {
+  @apply opacity-0;
+}
+
+.overlay {
+  @apply fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-md;
+}
+
+.modal-content {
+  @apply flex flex-col items-center text-white transition-all duration-500;
+}
+
+.loader {
+  @apply relative;
+}
+
+.loader-ring {
+  @apply absolute inset-0 rounded-full border-4 border-transparent border-t-purple-600 animate-spin w-14 h-14;
+}
+
+.loader-base {
+  @apply w-14 h-14 rounded-full border-4 border-blue-400/30;
+}
+
+.text-loading {
+  @apply text-sm text-blue-300/80 mt-2;
+}
+
+.status-icon {
+  @apply flex items-center justify-center w-14 h-14 rounded-full ring-2 animate-pulse;
+}
+
+.status-icon.success {
+  @apply bg-green-500/20 ring-green-400/40;
+}
+
+.status-icon.error {
+  @apply bg-red-500/20 ring-red-400/40;
+}
+
+.icon {
+  @apply h-8 w-8;
+}
+
+.text-success {
+  @apply text-sm text-green-300/80 mt-2;
+}
+
+.text-error {
+  @apply text-sm text-red-300/80 mt-2;
+}
