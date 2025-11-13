@@ -19,17 +19,12 @@
           :premium="false"
         />
         <div class="flex gap-6">
-          <RcsSoftButton
-            size="lg"
-            class="h-10 w-30"
-            @click="handleDelete(selectedTopic?.id!)"
-            label="Edit"
-          />
+          <RcsSoftButton size="lg" class="h-10 w-30" @click="handleShow('Edit')" label="Edit" />
 
           <RcsSoftButton
             size="lg"
             class="!text-red-700 h-10 w-30"
-            @click="handleDelete(selectedTopic?.id!)"
+            @click="handleShow('Delete')"
             label="Delete"
           />
         </div>
@@ -103,6 +98,17 @@
         </div>
       </div>
     </section>
+
+    <RcsTopicModal
+      :visible="showModal"
+      :mode="modalMode"
+      :title="modalTitle"
+      :message="modalMessage"
+      :topicName="selectedTopic?.label!"
+      @close="showModal = false"
+      @confirmed="DeleteOrEdit"
+    />
+    <RcsLoading :visible="loading" :status="loadingStatus" :text="loadingText" />
   </main>
 </template>
 
@@ -114,6 +120,7 @@ import RcsChartLine from '../components/RcsChartLine/RcsChartLine.vue'
 import RcsDropdown from '../components/RcsDropdown/RcsDropdown.vue'
 import RcsChartPie from '../components/RcsChartPie/RcsChartPie.vue'
 import RcsCard from '../components/RcsCard/RcsCard.vue'
+import RcsTopicModal from '@/components/RcsTopicModal/RcsTopicModal.vue'
 
 import { useTopicStore } from '@/stores/topicStore'
 import { useUserStore } from '@/stores/userStore'
@@ -169,6 +176,8 @@ import {
 } from '@/utils/firebaseUtils/AggregationUtils'
 import RcsSoftButton from '@/components/RcsSoftButton/RcsSoftButton.vue'
 import { deleteTopic } from '@/utils/firebaseUtils/deleteTopicUtils'
+import { updateTopicName } from '@/utils/firebaseUtils/editTopicUtils'
+import RcsLoading from '@/components/RcsLoading/RcsLoading.vue'
 
 const topicStore = useTopicStore()
 const userStore = useUserStore()
@@ -382,16 +391,61 @@ async function TopicCreate(label: string) {
     })
   }
 }
-async function handleDelete(topicId: string) {
-  if (!confirm('⚠️ Bu topic ve tüm verileri silinecek. Emin misiniz?')) return
+const showModal = ref(false)
+const modalTitle = ref(' ')
+const modalMessage = ref(' ')
+const modalMode = ref<'edit' | 'delete'>('edit')
 
-  const success = await deleteTopic(userStore.userId!, topicId)
-  if (success) {
-    topicStore.removeTopic(topicId)
+async function handleShow(title: string) {
+  if (title == 'Delete') {
+    showModal.value = true
+    modalMode.value = 'delete'
+    modalTitle.value = 'Delete Topic'
+    modalMessage.value = `Type the topic name Backend Study to confirm deletion."${selectedTopic.value?.label}"`
+  } else if (title == 'Edit') {
+    showModal.value = true
+    modalMode.value = 'edit'
+    modalTitle.value = 'Edit Topic'
+    modalMessage.value = `New topic name:`
+  }
+}
+const loading = ref(false)
+const loadingStatus = ref<'loading' | 'success' | 'error'>('loading')
+const loadingText = ref('Processing...')
 
-    if (selectedTopic.value?.id === topicId) {
+async function DeleteOrEdit(newName: string) {
+  console.log('newName', newName)
+  const topicId = selectedTopic.value!.id
+
+  showModal.value = false
+  loading.value = true
+  loadingStatus.value = 'loading'
+  loadingText.value = modalMode.value === 'delete' ? 'Deleting topic...' : 'Updating topic...'
+
+  try {
+    if (modalMode.value === 'delete') {
+      await deleteTopic(userStore.userId!, topicId)
+      topicStore.removeTopic(topicId)
       selectedTopic.value = null
+    } else {
+      await updateTopicName(userStore.userId!, topicId, newName)
+      topicStore.updateTopicName(topicId, newName)
+      selectedTopic.value!.label = newName
     }
+
+    // ✅ Başarılı
+    loadingStatus.value = 'success'
+    loadingText.value = 'Success!'
+  } catch (err) {
+    console.error('DeleteOrEdit hata:', err)
+    // ❌ Hata
+    loadingStatus.value = 'error'
+    loadingText.value = 'Something went wrong.'
+  } finally {
+    // ⏳ Biraz bekle ve overlay’i kapat
+    setTimeout(() => {
+      loading.value = false
+    }, 1200)
   }
 }
 </script>
