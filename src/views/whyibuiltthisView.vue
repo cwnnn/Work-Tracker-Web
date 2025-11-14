@@ -194,6 +194,9 @@ body:has(.premium-donate-btn:hover)::after {
     'Helvetica Neue',
     sans-serif;
 }
+.full {
+  @apply w-45;
+}
 
 @media (prefers-color-scheme: dark) {
   body::after {
