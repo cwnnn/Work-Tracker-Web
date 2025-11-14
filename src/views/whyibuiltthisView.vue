@@ -1,10 +1,8 @@
 <template>
-  <main
-    class="min-h-screen flex flex-col items-center justify-center px-6 py-16 text-center text-white"
-  >
+  <main class="min-h-screen flex flex-col items-center justify-center px-6 py-16 text-center mt-5">
     <h1 class="text-3xl font-bold mb-6 text-purple-500">Why I Built This</h1>
 
-    <div class="max-w-2xl text-gray-900 dark:text-gray-300 space-y-4 mb-12">
+    <div class="max-w-2xl space-y-4 mb-12">
       <p>
         I built this project because I needed a simple and honest way to understand how I spend my
         time. Not something complicated or packed with features — just a clean, distraction-free
@@ -24,7 +22,8 @@
       </p>
     </div>
 
-    <div class="flex flex-col items-center gap-4 mb-12">
+    <div class="flex flex-col items-center gap-6 mb-12 p-5 pb-10 px-20">
+      <p class="font-bold">If you believe in this project, you can support me with a coffee.</p>
       <a
         href="https://buymeacoffee.com/cwnn"
         target="_blank"
@@ -49,7 +48,7 @@
         💬 Feedback & Suggestions
       </h3>
 
-      <p class="text-sm text-gray-900 dark:text-gray-300 mb-3">
+      <p class="text-sm mb-3">
         Found a bug or have an idea to improve the project? Let me know below 👇
       </p>
 
@@ -68,7 +67,9 @@
         :disabled="loading"
         class="mt-3 px-5 py-2 hover:bg-blue-700 relative"
       >
-        <span v-if="!loading" class="text-blue-600 dark:text-blue-400">Send Feedback</span>
+        <span v-if="!loading" class="text-blue-600 dark:text-blue-400 font-bold"
+          >Send Feedback</span
+        >
         <span v-else class="text-blue-300 animate-pulse">Sending...</span>
       </RcsSoftButton>
 
@@ -137,7 +138,7 @@ async function submitFeedback() {
   pointer-events: none;
 
   /* Her zaman kesintisiz çalışacak animasyon */
-  animation: donate-beam 1.8s ease-out infinite;
+  animation: donate-beam 2.5s ease-out infinite;
 }
 
 @keyframes donate-beam {
@@ -195,7 +196,7 @@ body:has(.premium-donate-btn:hover)::after {
     sans-serif;
 }
 .full {
-  @apply w-45;
+  @apply w-45 mt-4;
 }
 
 @media (prefers-color-scheme: dark) {
