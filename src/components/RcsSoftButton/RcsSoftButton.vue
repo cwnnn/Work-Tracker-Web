@@ -12,45 +12,39 @@
     :disabled="props.disabled"
     @click="handleClick"
   >
-    <span v-if="props.icon" class="btn__icon" aria-hidden="true">{{ props.icon }}</span>
-    <span class="btn__label">{{ props.label }}</span>
+    <slot v-if="$slots.default"></slot>
+
+    <template v-else>
+      <span v-if="props.icon" class="btn__icon" aria-hidden="true">
+        {{ props.icon }}
+      </span>
+
+      <span v-if="props.label" class="btn__label">
+        {{ props.label }}
+      </span>
+    </template>
   </button>
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits, ref, withDefaults, watch } from 'vue'
-import type { ButtonProps } from './RcsSoftButton.interface'
-import './RcsSoftButton.styles.css'
-
-const props = withDefaults(defineProps<ButtonProps>(), {
-  label: 'Button',
-  size: 'md',
-  disabled: false,
-  icon: '',
-  pressed: false,
-  id: '',
-  class: '',
-  style: '',
+const props = defineProps({
+  id: String,
+  label: String,
+  icon: String,
+  size: {
+    type: String,
+    default: 'md',
+  },
+  disabled: Boolean,
+  pressed: Boolean,
+  class: String,
+  style: String,
 })
 
-const emits = defineEmits<{
-  (e: 'click', ev: MouseEvent): void
-  (e: 'press', pressed: boolean): void
-}>()
+const emit = defineEmits(['click'])
 
-const pressed = ref(props.pressed)
-
-watch(
-  () => props.pressed,
-  (val) => {
-    pressed.value = val
-  },
-)
-
-function handleClick(ev: MouseEvent) {
-  if (props.disabled) return
-  pressed.value = !pressed.value
-  emits('click', ev)
-  emits('press', pressed.value)
+function handleClick(e: Event) {
+  if (!props.disabled) emit('click', e)
 }
 </script>
+<style src="./RcsSoftButton.styles.css"></style>
