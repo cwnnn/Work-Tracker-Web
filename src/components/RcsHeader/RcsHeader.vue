@@ -13,7 +13,9 @@
         >Dashboard</router-link
       >
 
-      <router-link to="/aboutme" class="nav-link" exact-active-class="active">About Me</router-link>
+      <router-link to="/whyibuiltthis" class="nav-link" exact-active-class="active"
+        >Why I built this</router-link
+      >
     </nav>
 
     <button class="menu-toggle-button" @click="isOpen = !isOpen">☰</button>
@@ -34,11 +36,11 @@
       </li>
       <li>
         <router-link
-          to="/aboutme"
+          to="/whyibuiltthis"
           class="nav-link"
           exact-active-class="active"
           @click="isOpen = false"
-          >About Me</router-link
+          >Why I built this</router-link
         >
       </li>
     </ul>
