@@ -6,7 +6,7 @@
         <p class="footer-subtitle">Software Developer</p>
         <p class="footer-subtitle">resulcwn@gmail.com</p>
       </div>
-
+      <!--
       <div class="footer-socials">
         <a :href="links.github" target="_blank" class="footer-icon">
           <i class="fab fa-github fa-lg"></i>
@@ -18,6 +18,7 @@
           <i class="fab fa-instagram fa-lg"></i>
         </a>
       </div>
+      -->
     </div>
 
     <div class="footer-copy">© {{ currentYear }} Can. All rights reserved.</div>
@@ -26,14 +27,15 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+/*
 import type { RcsFooterLinks } from './RcsFooter.interface'
 
 const links: RcsFooterLinks = {
-  github: 'https://github.com/cwnnn',
-  linkedin: 'https://linkedin.com/in/resulcan',
-  instagram: 'https://instagram.com/resulcwn',
+  github: 'https://github.com/',
+  linkedin: 'https://linkedin.com/in/',
+  instagram: 'https://instagram.com/',
 }
-
+*/
 const currentYear = ref(new Date().getFullYear())
 </script>
 
