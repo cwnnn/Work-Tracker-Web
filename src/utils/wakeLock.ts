@@ -1,3 +1,5 @@
+import { saveGlobalErrorLog } from '@/utils/firebaseUtils/firebaseUtils'
+
 let wakeLock: WakeLockSentinel | null = null
 
 // Ekranın kapanmasını engeller
@@ -5,23 +7,33 @@ export async function requestWakeLock() {
   try {
     if ('wakeLock' in navigator) {
       wakeLock = await navigator.wakeLock.request('screen')
-      console.log('🔒 Screen Wake Lock aktif')
-      wakeLock.addEventListener('release', () => {
-        console.log('🔓 Screen Wake Lock bırakıldı')
-      })
-    } else {
-      console.warn('Wake Lock API desteklenmiyor.')
+
+      // Release event'i yakala
+      wakeLock.addEventListener('release', async () => {})
     }
-  } catch (err) {
-    console.error('WakeLock hatası:', err)
+  } catch (err: unknown) {
+    await saveGlobalErrorLog(
+      err instanceof Error ? err.message : String(err),
+      'WakeLock.request',
+      undefined,
+      err instanceof Error ? err.stack : undefined,
+    )
   }
 }
 
 // Wake Lock’u bırakır
 export function releaseWakeLock() {
-  if (wakeLock) {
-    wakeLock.release()
-    wakeLock = null
-    console.log('🔓 Wake Lock bırakıldı')
+  try {
+    if (wakeLock) {
+      wakeLock.release()
+      wakeLock = null
+    }
+  } catch (err: unknown) {
+    saveGlobalErrorLog(
+      err instanceof Error ? err.message : String(err),
+      'WakeLock.release',
+      undefined,
+      err instanceof Error ? err.stack : undefined,
+    )
   }
 }

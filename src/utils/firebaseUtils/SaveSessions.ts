@@ -60,11 +60,8 @@ export async function createTopic(userId: string, topicName: string) {
 
     //Firestore’a kaydet
     await setDoc(newDocRef, payload)
-
-    console.log(`Yeni topic oluşturuldu: ${topicName} (${topicId})`)
     return { topicId, ...payload }
   } catch (error) {
-    console.error('Topic oluşturulamadı:', error)
     await saveGlobalErrorLog(
       (error as Error).message,
       'createTopic',
@@ -84,7 +81,6 @@ async function decodeDuration(maskedDuration: string, seed: string, userId: stri
     const unmasked = unmask(maskedDuration, seed)
     return Number(unmasked) || 0
   } catch (err) {
-    console.error('[decodeDuration] Süre çözümlenemedi:', err)
     await saveGlobalErrorLog(
       (err as Error).message,
       'decodeDuration',
@@ -98,57 +94,81 @@ async function decodeDuration(maskedDuration: string, seed: string, userId: stri
 
 //Firestore'a yeni session ekleme
 async function addSessionRecord(userId: string, topicId: string, duration: number) {
-  const sessionsRef = collection(db, 'users', userId, 'sessions')
-  await addDoc(sessionsRef, {
-    topicId,
-    durationValue: duration,
-    date: Timestamp.fromDate(new Date()),
-  })
-  console.log(`Session kaydedildi! (${duration} ms)`)
+  try {
+    const sessionsRef = collection(db, 'users', userId, 'sessions')
+    await addDoc(sessionsRef, {
+      topicId,
+      durationValue: duration,
+      date: Timestamp.fromDate(new Date()),
+    })
+  } catch (err: unknown) {
+    await saveGlobalErrorLog(
+      err instanceof Error ? err.message : 'addSessionRecord error',
+      'addSessionRecord',
+      userId,
+      err instanceof Error ? err.stack : undefined,
+      { topicId, duration },
+    )
+    throw err
+  }
 }
 
 //Topic verisini güncelleme (toplam süre, seviye vb.)
 async function updateTopicStats(userId: string, topicId: string, duration: number) {
-  const topicRef = doc(db, 'users', userId, 'topics', topicId)
+  try {
+    const topicRef = doc(db, 'users', userId, 'topics', topicId)
 
-  await runTransaction(db, async (t) => {
-    const snap = await t.get(topicRef)
-    if (!snap.exists()) {
-      console.warn('[updateTopicStats] Topic bulunamadı:', topicId)
-      return
-    }
+    await runTransaction(db, async (t) => {
+      const snap = await t.get(topicRef)
+      if (!snap.exists()) return
 
-    const data = snap.data()
-    const currentTotal = data.totalMs || 0
-    const currentCount = data.sessionCount || 0
+      const data = snap.data()
+      const newTotal = (data.totalMs || 0) + duration
+      const newCount = (data.sessionCount || 0) + 1
+      const newLevelInfo = LEVELS.filter((l) => newTotal >= l.threshold).pop() ?? LEVELS[0]
 
-    const newTotal = currentTotal + duration
-    const newCount = currentCount + 1
-    const newLevelInfo = LEVELS.filter((l) => newTotal >= l.threshold).pop() ?? LEVELS[0]
-
-    t.update(topicRef, {
-      totalMs: newTotal,
-      sessionCount: newCount,
-      lastSessionAt: serverTimestamp(),
-      level: newLevelInfo!.name,
-      levelIndex: LEVELS.findIndex((l) => l.name === newLevelInfo!.name),
-      updatedAt: serverTimestamp(),
+      t.update(topicRef, {
+        totalMs: newTotal,
+        sessionCount: newCount,
+        lastSessionAt: serverTimestamp(),
+        level: newLevelInfo!.name,
+        levelIndex: LEVELS.findIndex((l) => l.name === newLevelInfo!.name),
+        updatedAt: serverTimestamp(),
+      })
     })
-  })
-
-  console.log(`Topic "${topicId}" transaction ile güncellendi.`)
+  } catch (err: unknown) {
+    await saveGlobalErrorLog(
+      err instanceof Error ? err.message : 'updateTopicStats error',
+      'updateTopicStats',
+      userId,
+      err instanceof Error ? err.stack : undefined,
+      { topicId, duration },
+    )
+    throw err
+  }
 }
 
 async function updateAllTopicsTotalFocus(userId: string, deltaMs: number) {
-  const statsRef = doc(db, 'users', userId, 'stats', 'allTopics')
-  await setDoc(
-    statsRef,
-    {
-      totalFocusMs: increment(deltaMs),
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }, // belge yoksa oluşturur, varsa artırır
-  )
+  try {
+    const statsRef = doc(db, 'users', userId, 'stats', 'allTopics')
+    await setDoc(
+      statsRef,
+      {
+        totalFocusMs: increment(deltaMs),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
+    )
+  } catch (err: unknown) {
+    await saveGlobalErrorLog(
+      err instanceof Error ? err.message : 'updateAllTopicsTotalFocus error',
+      'updateAllTopicsTotalFocus',
+      userId,
+      err instanceof Error ? err.stack : undefined,
+      { deltaMs },
+    )
+    throw err
+  }
 }
 
 //Ana fonksiyon
@@ -183,11 +203,7 @@ export async function saveSession(
       updateMonthlyStatsLite(userId, topicId, durationMs, endDate),
       updateYearlyStatsLite(userId, topicId, durationMs, endDate),
     ])
-
-    console.log('✅ saveSession başarıyla tamamlandı')
   } catch (error) {
-    console.error('❌ saveSession hatası:', error)
-
     await saveGlobalErrorLog(
       (error as Error).message,
       'saveSession',

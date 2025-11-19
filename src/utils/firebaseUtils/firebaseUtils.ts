@@ -11,7 +11,10 @@ import {
 } from 'firebase/firestore'
 import { useAllTopicStatsStore } from '../../stores/AllTopicStatsStore'
 
-// Hata kayıt fonksiyonu
+let errorLogFailCount = 0
+const ERROR_LOG_FAIL_LIMIT = 3
+let errorLoggingDisabled = false
+
 export async function saveGlobalErrorLog(
   message: string,
   context: string,
@@ -19,6 +22,8 @@ export async function saveGlobalErrorLog(
   stack?: string,
   additionalData?: Record<string, unknown>,
 ) {
+  if (errorLoggingDisabled) return
+
   try {
     const errorsRef = collection(db, 'errors')
     await addDoc(errorsRef, {
@@ -31,9 +36,23 @@ export async function saveGlobalErrorLog(
       time: Timestamp.fromDate(new Date()),
     })
 
-    console.log('[saveGlobalErrorLog] Hata kaydedildi:', message)
+    // Başarılı olursa fail counter sıfırlanır
+    errorLogFailCount = 0
   } catch (err) {
-    console.error('[saveGlobalErrorLog] Hata kaydedilemedi:', err)
+    errorLogFailCount++
+
+    // Kırılma eşiğine ulaşıldıysa logging sistemini durdur
+    if (errorLogFailCount >= ERROR_LOG_FAIL_LIMIT) {
+      errorLoggingDisabled = true
+
+      console.error(
+        `[GLOBAL LOGGING DISABLED] Failed ${errorLogFailCount} times.`,
+        'Original error:',
+        message,
+        'Logging error:',
+        err,
+      )
+    }
   }
 }
 
@@ -53,11 +72,8 @@ export const getUserTopics = async (userId: string): Promise<UserTopic[]> => {
       id: doc.id,
       topic: doc.data().topic || 'Unknown',
     }))
-
-    console.log('Kullanıcının topic listesi (ASC):', topics)
     return topics
   } catch (err) {
-    console.error('Topicleri çekerken hata:', err)
     await saveGlobalErrorLog((err as Error).message, 'getUserTopics', userId, (err as Error).stack)
     return []
   }
@@ -78,11 +94,9 @@ export const getSeed = async (): Promise<Seed | null> => {
       const data = seedSnap.data()
       return { value: data.value } as Seed
     } else {
-      console.log('Seed bulunamadı')
       return null
     }
   } catch (err) {
-    console.error('Seed’i çekerken hata:', err)
     await saveGlobalErrorLog((err as Error).message, 'getSeed', undefined, (err as Error).stack)
     return null
   }
@@ -93,7 +107,6 @@ export async function getStatsAllTopics(userId: string) {
 
   try {
     if (!userId) {
-      console.error('[getStatsAllTopics] userId eksik.')
       return null
     }
 
@@ -101,16 +114,12 @@ export async function getStatsAllTopics(userId: string) {
     const statsSnap = await getDoc(statsRef)
 
     if (!statsSnap.exists()) {
-      console.warn('[getStatsAllTopics] allTopics belgesi bulunamadı.')
       return null
     }
 
     const data = statsSnap.data()
     AllTopicStatsStore.setStats(data)
-
-    return console.log('alltopicsstate:', data)
   } catch (err) {
-    console.error('[getStatsAllTopics] Hata:', err)
     await saveGlobalErrorLog(
       (err as Error).message,
       'getStatsAllTopics',

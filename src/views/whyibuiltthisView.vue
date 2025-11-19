@@ -115,8 +115,6 @@ async function submitFeedback() {
     feedback.value = ''
 
     setTimeout(() => (sent.value = false), 3000)
-  } catch (err) {
-    console.error('Feedback error:', err)
   } finally {
     loading.value = false
   }

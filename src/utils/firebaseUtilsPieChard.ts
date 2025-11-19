@@ -1,16 +1,15 @@
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '@/firebase'
 import { useTopicStatsStore } from '@/stores/topicStatsStore'
+import { saveGlobalErrorLog } from '@/utils/firebaseUtils/firebaseUtils'
 
 export async function getAllTopicsWithTotalHours(userId: string) {
   const topicStatsStore = useTopicStatsStore()
 
   try {
-    // Firestore'dan topics koleksiyonunu çek
     const topicsRef = collection(db, 'users', userId, 'topics')
     const snapshot = await getDocs(topicsRef)
 
-    // Verileri toplamak için map
     const topicMap: Record<string, number> = {}
 
     snapshot.docs.forEach((doc) => {
@@ -25,10 +24,8 @@ export async function getAllTopicsWithTotalHours(userId: string) {
         ? (data.lastSessionAt.toDate?.() ?? data.lastSessionAt)
         : null
 
-      // Toplam süreleri hesapla
       topicMap[topicName] = (topicMap[topicName] || 0) + totalMs
 
-      // Her topic'i store'a kaydet
       topicStatsStore.setStats(
         topicId,
         topicName,
@@ -40,16 +37,20 @@ export async function getAllTopicsWithTotalHours(userId: string) {
       )
     })
 
-    // Chart.js formatında veri hazırla
     const labels = Object.keys(topicMap)
     const data = labels.map((label) =>
       Number(((topicMap[label] ?? 0) / (1000 * 60 * 60)).toFixed(2)),
-    ) // ms → saat
+    )
 
-    console.log('Topic stats updated:', topicStatsStore.stats)
     return { labels, data }
-  } catch (err) {
-    console.error('[getAllTopicsWithTotalHours] Hata:', err)
+  } catch (err: unknown) {
+    await saveGlobalErrorLog(
+      err instanceof Error ? err.message : String(err),
+      'getAllTopicsWithTotalHours',
+      userId,
+      err instanceof Error ? err.stack : undefined,
+    )
+
     throw err
   }
 }

@@ -1,7 +1,7 @@
 // src/stores/seedStore.ts
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { getSeed } from '@/utils/firebaseUtils/firebaseUtils' // az önce yazdığın fonksiyon
+import { getSeed, saveGlobalErrorLog } from '@/utils/firebaseUtils/firebaseUtils'
 
 export const useSeedStore = defineStore('seed', () => {
   const seed = ref<string | null>(null)
@@ -16,18 +16,20 @@ export const useSeedStore = defineStore('seed', () => {
     try {
       isLoading.value = true
       const result = await getSeed()
+
       if (result) {
         seed.value = result.value
       } else {
         error.value = 'Seed bulunamadı'
       }
     } catch (err: unknown) {
-      console.error('Seed yüklenemedi:', err)
-      if (err instanceof Error) {
-        error.value = err.message
-      } else {
-        error.value = String(err ?? 'Seed yüklenemedi')
-      }
+      await saveGlobalErrorLog(
+        err instanceof Error ? err.message : String(err),
+        'SeedStore.loadSeed',
+        undefined,
+        err instanceof Error ? err.stack : undefined,
+      )
+      error.value = err instanceof Error ? err.message : String(err ?? 'Seed yüklenemedi')
     } finally {
       isLoading.value = false
     }

@@ -8,6 +8,7 @@ import { useUserStore } from './stores/userStore'
 import { useTopicStore } from '@/stores/topicStore'
 import { useSeedStore } from '@/stores/seedStore'
 import { getUserTopics } from '@/utils/firebaseUtils/firebaseUtils'
+import { saveGlobalErrorLog } from './utils/firebaseUtils/firebaseUtils'
 
 const userStore = useUserStore()
 const topicStore = useTopicStore()
@@ -19,14 +20,15 @@ onMounted(async () => {
     userStore.setUser(result.user.uid)
 
     await seedStore.loadSeed()
-    console.log('Seed:', seedStore.seed)
-    console.log('Anonim kullanıcı giriş yaptı:', result.user.uid)
-    console.log('Global store userId:', result.user.uid)
     const topics = await getUserTopics(result.user.uid)
     topicStore.setTopics(topics)
-    console.log('Topic listesi yüklendi:', topics)
   } catch (err) {
-    console.error('App başlatılırken hata:', err)
+    await saveGlobalErrorLog(
+      err instanceof Error ? err.message : String(err),
+      'AppMounted',
+      undefined,
+      err instanceof Error ? err.stack : undefined,
+    )
   }
 })
 </script>

@@ -23,24 +23,11 @@ const userStore = useUserStore()
 const topicStore = useTopicStore()
 const seedStore = useSeedStore()
 
+/* -----------------------------
+   🔹 DROPDOWN (selectedTopic)
+------------------------------ */
 const selectedTopic = ref<{ id: string; label: string } | null>(null)
 
-/* kayıt algoritması açıklaması */
-const LOCAL_KEY = ref<string>('noTopic')
-
-watch(selectedTopic, (newVal, oldVal) => {
-  if (!newVal) return
-  if (!oldVal || newVal.id !== oldVal.id) {
-    const seed = seedStore.seed
-    if (!seed) return console.warn('Seed bulunamadı (LOCAL_KEY oluşturulamadı).')
-
-    const maskedId = mask(newVal.id, seed)
-    LOCAL_KEY.value = `topic_${maskedId}`
-    resetTimerfunc()
-  }
-})
-
-// dropdown item'ları computed olarak al
 const dropdownItems = computed(() =>
   topicStore.topics.map((t) => ({
     id: t.id,
@@ -48,36 +35,44 @@ const dropdownItems = computed(() =>
   })),
 )
 
-//Yeni topic oluşturma fonksiyonu
 async function TopicCreate(label: string) {
   try {
     const userId = userStore.userId
-    if (!userId) {
-      console.error('User ID bulunamadı!')
-      return
-    }
+    if (!userId) return
 
     const topicName = toTitleCase(label)
     const topic = await createTopic(userId, topicName)
 
-    // store’a ekle
     const newTopic = { id: topic.topicId, topic: topicName }
     topicStore.addTopic(newTopic)
 
-    // seçili topic olarak ata
     selectedTopic.value = { id: newTopic.id, label: newTopic.topic }
-
-    console.log(`Yeni topic oluşturuldu: ${topicName}`)
   } catch (error: unknown) {
     const e = error instanceof Error ? error : new Error(String(error))
-    console.error('Topic oluşturulamadı:', e)
     await saveGlobalErrorLog(e.message, 'TopicCreate', userStore.userId ?? undefined, e.stack, {
       label,
     })
   }
 }
 
-// Stopwatch ref'leri ve kontrol fonksiyonları
+/* Kayıt algoritması için LOCAL_KEY */
+const LOCAL_KEY = ref<string>('noTopic')
+
+watch(selectedTopic, (newVal, oldVal) => {
+  if (!newVal) return
+  if (!oldVal || newVal.id !== oldVal.id) {
+    const seed = seedStore.seed
+    if (!seed) return
+
+    const maskedId = mask(newVal.id, seed)
+    LOCAL_KEY.value = `topic_${maskedId}`
+    resetTimerfunc()
+  }
+})
+
+/* -----------------------------
+   🔹 STOPWATCH
+------------------------------ */
 const stopwatchRef = ref<InstanceType<typeof RcsStopwatch> | null>(null)
 const startStopLabel = ref('Start')
 const buttonPressed = ref(false)
@@ -86,19 +81,49 @@ const startTimer = () => stopwatchRef.value?.start()
 const stopTimer = () => stopwatchRef.value?.stop()
 const resetTimer = () => stopwatchRef.value?.reset()
 
+/* -----------------------------
+   🔹 RESET / LOAD BUTONLARI
+------------------------------ */
+const resetButtonLabel = ref('Load Today')
+const isResetButtonLoad = ref(true)
+const getTodayFocusMS = ref(0)
+const cachedTodayMs = ref<number | null>(null)
+
+watch(isResetButtonLoad, (newVal) => {
+  resetButtonLabel.value = newVal ? 'Load Today' : 'Reset'
+})
+
+async function ResetOrLoad() {
+  if (isResetButtonLoad.value) {
+    if (cachedTodayMs.value === null && userStore.userId && selectedTopic.value) {
+      const ms = await getTodayFromMonthlyLite(userStore.userId!, selectedTopic.value!.id)
+      cachedTodayMs.value = ms
+
+      isResetButtonLoad.value = false
+    }
+
+    getTodayFocusMS.value = cachedTodayMs.value!
+    previousTime.value = 0
+  } else {
+    getTodayFocusMS.value = 0
+    resetTimerfunc()
+  }
+}
+
+/* -----------------------------
+   🔹 AUTO-SAVE (LocalStorage + Masking)
+------------------------------ */
 function saveAccumulatedTime(time?: number) {
   if (!selectedTopic.value) return
 
   const seed = seedStore.seed
   if (!seed) {
-    console.warn('[saveAccumulatedTime] Seed henüz yüklenmedi, kayıt atlandı.')
     return
   }
 
   const value = time?.toString() || '0'
   const masked = mask(value, seed)
   localStorage.setItem(LOCAL_KEY.value, masked)
-  console.log(localStorage.getItem(LOCAL_KEY.value))
 }
 
 const previousTime = ref<number>(0)
@@ -110,12 +135,12 @@ function computedAccumulatedTime() {
   previousTime.value = stopwatchRef.value.time
 
   const seed = seedStore.seed
-  if (!seed) return console.warn('[computedAccumulatedTime] Seed henüz yüklenmedi, kayıt atlandı.')
+  if (!seed) return
 
   const stored = localStorage.getItem(LOCAL_KEY.value)
   if (!stored) {
     saveAccumulatedTime(delta)
-    console.log('İlk kayıt. Toplam süre (ms):', delta)
+
     return
   }
 
@@ -125,7 +150,7 @@ function computedAccumulatedTime() {
     total = Number(unmasked) || 0
   } catch (err: unknown) {
     const e = err instanceof Error ? err : new Error(String(err))
-    console.error('[computedAccumulatedTime] Kayıt çözümlenemedi:', e)
+
     localStorage.removeItem(LOCAL_KEY.value)
     total = 0
     saveGlobalErrorLog(
@@ -139,19 +164,18 @@ function computedAccumulatedTime() {
         seed,
         selectedTopic: selectedTopic.value,
       },
-    ).catch(console.error)
+    ).catch()
   }
 
   const newTotal = total + delta
   saveAccumulatedTime(newTotal)
-  console.log('Kayıt edildi. Toplam süre (ms):', newTotal)
 }
 
 let intervalId: number | null = null
 
 function startAutoSave() {
   stopAutoSave()
-  console.log('stopwatchRef.value?.time', stopwatchRef.value?.time)
+
   previousTime.value = stopwatchRef.value?.time || 0
 
   intervalId = window.setInterval(async () => {
@@ -159,7 +183,7 @@ function startAutoSave() {
       computedAccumulatedTime()
     } catch (err: unknown) {
       const e = err instanceof Error ? err : new Error(String(err))
-      console.error('[startAutoSave] Otomatik kayıt hatası:', e)
+
       await saveGlobalErrorLog(e.message, 'startAutoSave', userStore.userId ?? undefined, e.stack, {
         selectedTopic: selectedTopic.value,
         seed: seedStore.seed,
@@ -174,7 +198,7 @@ async function stopAutoSave() {
     computedAccumulatedTime()
   } catch (err: unknown) {
     const e = err instanceof Error ? err : new Error(String(err))
-    console.error('[stopAutoSave] Durdurma sırasında hata:', e)
+
     await saveGlobalErrorLog(e.message, 'stopAutoSave', userStore.userId ?? undefined, e.stack, {
       selectedTopic: selectedTopic.value,
       seed: seedStore.seed,
@@ -188,24 +212,20 @@ async function stopAutoSave() {
   }
 }
 
+/* -----------------------------
+   🔹 START / STOP (press event)
+------------------------------ */
 function toggleTracking(value: boolean) {
   if (value) {
-    console.log('Takip başladı...')
-    if (selectedTopic.value) {
-      startAutoSave()
-    }
+    if (selectedTopic.value) startAutoSave()
   } else {
-    console.log('Takip durdu.')
     stopAutoSave()
   }
 }
 
-onUnmounted(() => {
-  stopAutoSave()
-})
-
 async function handlePress(pressed: boolean) {
   toggleTracking(pressed)
+
   if (pressed) {
     isResetButtonLoad.value = false
     requestWakeLock()
@@ -217,11 +237,11 @@ async function handlePress(pressed: boolean) {
     stopTimer()
     startStopLabel.value = 'Start'
     buttonPressed.value = false
+
     const masked = localStorage.getItem(LOCAL_KEY.value)
     if (masked && userStore.userId && selectedTopic.value) {
       const seed = seedStore.seed
       if (!seed) {
-        console.warn('[saveSession] Seed henüz yüklenmedi, kayıt atlandı.')
         return
       }
 
@@ -231,7 +251,7 @@ async function handlePress(pressed: boolean) {
         time = Number(unmasked) || 0
       } catch (err: unknown) {
         const e = err instanceof Error ? err : new Error(String(err))
-        console.error('[saveSession] Süre çözümlenemedi:', e)
+
         await saveGlobalErrorLog(
           e.message,
           'handlePress (Stop)',
@@ -253,7 +273,7 @@ async function handlePress(pressed: boolean) {
           localStorage.removeItem(LOCAL_KEY.value)
         } catch (err: unknown) {
           const e = err instanceof Error ? err : new Error(String(err))
-          console.error('[handlePress] saveSession hatası:', e)
+
           await saveGlobalErrorLog(
             e.message,
             'handlePress (saveSession)',
@@ -279,32 +299,9 @@ function resetTimerfunc() {
   isResetButtonLoad.value = true
 }
 
-const resetButtonLabel = ref('Load Today')
-const isResetButtonLoad = ref(true) //true : load False : reset
-const getTodayFocusMS = ref(0)
-
-watch(isResetButtonLoad, (newVal) => {
-  resetButtonLabel.value = newVal ? 'Load Today' : 'Reset'
+onUnmounted(() => {
+  stopAutoSave()
 })
-
-const cachedTodayMs = ref<number | null>(null)
-
-async function ResetOrLoad() {
-  if (isResetButtonLoad.value) {
-    if (cachedTodayMs.value === null && userStore.userId && selectedTopic.value) {
-      const ms = await getTodayFromMonthlyLite(userStore.userId!, selectedTopic.value!.id)
-      cachedTodayMs.value = ms
-      console.log('Firestore’dan alındı:', ms)
-      isResetButtonLoad.value = false
-    }
-    console.log('yamette kudasay', getTodayFocusMS)
-    getTodayFocusMS.value = cachedTodayMs.value!
-    previousTime.value = 0
-  } else {
-    getTodayFocusMS.value = 0
-    resetTimerfunc()
-  }
-}
 </script>
 
 <template>
