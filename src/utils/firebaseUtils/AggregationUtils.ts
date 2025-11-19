@@ -249,3 +249,22 @@ export async function getYearlyStats(userId: string, topicId: string, date = new
 
   return { labels, data }
 }
+export async function getTodayFromMonthlyLite(userId: string, topicId: string, date = new Date()) {
+  const year = date.getFullYear()
+  const month = (date.getMonth() + 1).toString().padStart(2, '0')
+  const day = date.getDate().toString().padStart(2, '0')
+
+  const monthKey = `${year}-${month}`
+  const docId = `${topicId}_${monthKey}`
+
+  const ref = doc(db, 'users', userId, 'monthlyStats', docId)
+  const snap = await getDoc(ref)
+
+  if (!snap.exists()) return 0
+
+  const data = snap.data().data || {}
+
+  const minutes = data[day] || 0
+  console.log('minutes', minutes)
+  return minutes * 60 * 1000 // → ms
+}

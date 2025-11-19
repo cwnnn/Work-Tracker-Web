@@ -16,11 +16,29 @@ import { createTopic, saveSession } from '../utils/firebaseUtils/SaveSessions'
 import { mask, unmask } from '../utils/maskUtils'
 import { toTitleCase } from '../utils/TitleCorrUtils'
 import { releaseWakeLock, requestWakeLock } from '@/utils/wakeLock'
+import { getTodayFromMonthlyLite } from '@/utils/firebaseUtils/AggregationUtils'
 
 // store'ları başlat
 const userStore = useUserStore()
 const topicStore = useTopicStore()
 const seedStore = useSeedStore()
+
+const selectedTopic = ref<{ id: string; label: string } | null>(null)
+
+/* kayıt algoritması açıklaması */
+const LOCAL_KEY = ref<string>('noTopic')
+
+watch(selectedTopic, (newVal, oldVal) => {
+  if (!newVal) return
+  if (!oldVal || newVal.id !== oldVal.id) {
+    const seed = seedStore.seed
+    if (!seed) return console.warn('Seed bulunamadı (LOCAL_KEY oluşturulamadı).')
+
+    const maskedId = mask(newVal.id, seed)
+    LOCAL_KEY.value = `topic_${maskedId}`
+    resetTimerfunc()
+  }
+})
 
 // dropdown item'ları computed olarak al
 const dropdownItems = computed(() =>
@@ -29,8 +47,6 @@ const dropdownItems = computed(() =>
     label: t.topic,
   })),
 )
-
-const selectedTopic = ref<{ id: string; label: string } | null>(null)
 
 //Yeni topic oluşturma fonksiyonu
 async function TopicCreate(label: string) {
@@ -70,15 +86,6 @@ const startTimer = () => stopwatchRef.value?.start()
 const stopTimer = () => stopwatchRef.value?.stop()
 const resetTimer = () => stopwatchRef.value?.reset()
 
-function resetTimerfunc() {
-  resetTimer()
-  handlePress(false)
-  previousTime.value = 0
-}
-
-/* kayıt algoritması açıklaması */
-const LOCAL_KEY = ref<string>('noTopic')
-
 function saveAccumulatedTime(time?: number) {
   if (!selectedTopic.value) return
 
@@ -93,6 +100,7 @@ function saveAccumulatedTime(time?: number) {
   localStorage.setItem(LOCAL_KEY.value, masked)
   console.log(localStorage.getItem(LOCAL_KEY.value))
 }
+
 const previousTime = ref<number>(0)
 
 function computedAccumulatedTime() {
@@ -143,6 +151,7 @@ let intervalId: number | null = null
 
 function startAutoSave() {
   stopAutoSave()
+  console.log('stopwatchRef.value?.time', stopwatchRef.value?.time)
   previousTime.value = stopwatchRef.value?.time || 0
 
   intervalId = window.setInterval(async () => {
@@ -198,6 +207,7 @@ onUnmounted(() => {
 async function handlePress(pressed: boolean) {
   toggleTracking(pressed)
   if (pressed) {
+    isResetButtonLoad.value = false
     requestWakeLock()
     startTimer()
     startStopLabel.value = 'Stop'
@@ -262,24 +272,45 @@ async function handlePress(pressed: boolean) {
   }
 }
 
-watch(selectedTopic, (newVal, oldVal) => {
-  if (!newVal) return
-  if (!oldVal || newVal.id !== oldVal.id) {
-    const seed = seedStore.seed
-    if (!seed) return console.warn('Seed bulunamadı (LOCAL_KEY oluşturulamadı).')
+function resetTimerfunc() {
+  resetTimer()
+  handlePress(false)
+  previousTime.value = 0
+  isResetButtonLoad.value = true
+}
 
-    const maskedId = mask(newVal.id, seed)
-    LOCAL_KEY.value = `topic_${maskedId}`
+const resetButtonLabel = ref('Load Today')
+const isResetButtonLoad = ref(true) //true : load False : reset
+const getTodayFocusMS = ref(0)
+
+watch(isResetButtonLoad, (newVal) => {
+  resetButtonLabel.value = newVal ? 'Load Today' : 'Reset'
+})
+
+const cachedTodayMs = ref<number | null>(null)
+
+async function ResetOrLoad() {
+  if (isResetButtonLoad.value) {
+    if (cachedTodayMs.value === null && userStore.userId && selectedTopic.value) {
+      const ms = await getTodayFromMonthlyLite(userStore.userId!, selectedTopic.value!.id)
+      cachedTodayMs.value = ms
+      console.log('Firestore’dan alındı:', ms)
+      isResetButtonLoad.value = false
+    }
+    console.log('yamette kudasay', getTodayFocusMS)
+    getTodayFocusMS.value = cachedTodayMs.value!
+    previousTime.value = 0
+  } else {
+    getTodayFocusMS.value = 0
     resetTimerfunc()
   }
-})
+}
 </script>
 
 <template>
-  <main class="min-h-screen p-2 mt-20 flex flex-col md:flex-row md:gap-6">
-    <div
-      class="w-full md:w-auto order-first md:order-last flex justify-center md:justify-end md:mr-10"
-    >
+  <main class="relative min-h-screen flex flex-col md:flex-row">
+    <!-- 🔹 DROPDOWN: Sağ üstte absolute -->
+    <div class="absolute top-20 right-16">
       <RcsSearchableDropdown
         v-model="selectedTopic"
         :items="dropdownItems"
@@ -288,9 +319,10 @@ watch(selectedTopic, (newVal, oldVal) => {
       />
     </div>
 
-    <div class="flex-1 flex justify-center">
-      <div class="text-center xl:ml-[30vh] md:mt-20">
-        <RcsStopwatch ref="stopwatchRef" :initialTime="0" />
+    <!-- 🔹 STOPWATCH TAM ORTADA -->
+    <div class="flex-1 flex items-center justify-center">
+      <div class="text-center">
+        <RcsStopwatch ref="stopwatchRef" :initialTime="getTodayFocusMS" />
 
         <div class="mt-4 flex gap-6 justify-center">
           <RcsSoftButton
@@ -300,7 +332,12 @@ watch(selectedTopic, (newVal, oldVal) => {
             size="xl"
             class="w-30 md:w-50"
           />
-          <RcsSoftButton label="Reset" @click="resetTimerfunc" size="xl" class="w-30 md:w-50" />
+          <RcsSoftButton
+            :label="resetButtonLabel"
+            @click="ResetOrLoad()"
+            size="xl"
+            class="w-30 md:w-50"
+          />
         </div>
       </div>
     </div>

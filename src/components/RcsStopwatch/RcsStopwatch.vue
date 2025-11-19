@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onUnmounted, defineExpose, withDefaults } from 'vue'
+import { ref, onUnmounted, defineExpose, withDefaults, watch } from 'vue'
 import type { StopwatchExpose } from './RcsStopwatch.interface'
 
 const props = withDefaults(
@@ -29,7 +29,18 @@ const displayTime = ref(initialMs)
 const running = ref(false)
 let rafId: number | null = null
 let startTimestamp = 0
-let accumulated = initialMs
+
+let accumulated = 0
+
+watch(
+  () => props.initialTime,
+  () => {
+    // component duruyorsa sadece görüntü güncellensin
+    if (!running.value) {
+      updateTime()
+    }
+  },
+)
 
 // Başlat
 const start = () => {
@@ -56,19 +67,21 @@ const stop = () => {
   rafId = null
 }
 
-// Reset
 const reset = () => {
   stop()
   accumulated = 0
-  displayTime.value = 0
+  displayTime.value = props.initialTime || 0
 }
 
 // Gerçek zaman hesaplama
 const updateTime = () => {
+  const base = props.initialTime || 0
+
   if (running.value) {
-    displayTime.value = accumulated + (Date.now() - startTimestamp)
+    const nowElapsed = Date.now() - startTimestamp
+    displayTime.value = base + accumulated + nowElapsed
   } else {
-    displayTime.value = accumulated
+    displayTime.value = base + accumulated
   }
 }
 
@@ -83,7 +96,11 @@ defineExpose<StopwatchExpose>({
   stop,
   reset,
   get time() {
-    return Math.floor(displayTime.value)
+    // sadece GERÇEK geçen süre, initialTime hariç
+    if (running.value) {
+      return Math.floor(accumulated + (Date.now() - startTimestamp))
+    }
+    return Math.floor(accumulated)
   },
 })
 
