@@ -6,4 +6,4 @@ Disallow: /admin
 Disallow: /test
 
 # Sitemap konumu
-Sitemap: https://work-tracker-web.vercel.app/sitemap.xml
+Sitemap: https://worxtracker.com/sitemap.xml
