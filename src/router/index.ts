@@ -13,7 +13,7 @@ const router = createRouter({
       name: 'home',
       component: HomeView,
       meta: {
-        title: 'Work Tracker — Focus Your Time',
+        title: 'Worx Tracker — Focus Your Time',
         description: 'A modern and minimal time tracking tool to help you stay focused.',
       },
     },
@@ -30,7 +30,7 @@ const router = createRouter({
       name: 'dashboard',
       component: DashboardView,
       meta: {
-        title: 'Dashboard — Work Tracker',
+        title: 'Dashboard — WorX Tracker',
         description:
           'Track your focus sessions with clear visual charts and topic-based insights. Analyze your daily, weekly, and monthly performance through interactive graphs and summary cards.',
       },
@@ -48,7 +48,7 @@ const router = createRouter({
       name: 'whyibuiltthis',
       component: whyibuiltthisView,
       meta: {
-        title: 'Why I Built This — Work Tracker',
+        title: 'Why I Built This — WorX Tracker',
         description:
           'A clean, ad-free tool to help you understand your focus patterns through visual charts, session history, and topic-based statistics.',
       },
@@ -58,7 +58,7 @@ const router = createRouter({
 
 router.afterEach((to) => {
   // DEFAULTS
-  const defaultTitle = 'Work Tracker'
+  const defaultTitle = 'WorX Tracker'
   const defaultDesc = 'Modern anonymous focus tracker.'
 
   // TITLE

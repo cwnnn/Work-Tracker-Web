@@ -2,7 +2,7 @@
   <footer class="footer">
     <div class="footer-container">
       <div class="footer-info">
-        <h3 class="footer-title">Can's work-tracker</h3>
+        <h3 class="footer-title">Can's worx-tracker</h3>
         <p class="footer-subtitle">Software Developer</p>
         <p class="footer-subtitle">resulcwn@gmail.com</p>
       </div>
